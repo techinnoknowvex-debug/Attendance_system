@@ -6,7 +6,7 @@ import AdminLoginModal from "../components/AdminLoginModal";
 import AttendanceForm from "../components/AttendanceForm";
 import PINModal from "../components/PINModal";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 export default function Home() {
   const navigate = useNavigate();

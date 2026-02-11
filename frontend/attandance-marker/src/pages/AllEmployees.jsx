@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 import LoadingSpinner from "../components/LoadingSpinner";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 export default function AllEmployees() {
     const navigate = useNavigate();

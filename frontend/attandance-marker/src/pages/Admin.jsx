@@ -8,7 +8,7 @@ import DailySheetForm from "../components/DailySheetForm";
 import LOPModal from "../components/LOPModal";
 import logo from "../assets/logo.png";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 export default function Admin(){
     const navigate = useNavigate();
@@ -126,7 +126,7 @@ export default function Admin(){
       setDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try{
-        const res=await fetch(`${BASE_URL}/emp/empdata`,{
+        const res=await fetch(`https://attendance-system-k7rg.onrender.com/emp/empdata`,{
           method:"POST",
           headers: {
             "Content-Type": "application/json",
