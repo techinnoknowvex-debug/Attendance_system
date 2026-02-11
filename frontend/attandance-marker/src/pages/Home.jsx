@@ -71,7 +71,7 @@ export default function Home() {
     const fetchEmployees = async () => {
       setEmployeesLoading(true);
       try {
-        const res = await fetch("https://attendance-system-29fc.onrender.com/emp/employees-for-attendance", {
+        const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/employees-for-attendance", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -107,7 +107,7 @@ export default function Home() {
 
       setLoading(true);
      
-      const verifyRes = await fetch("https://attendance-system-29fc.onrender.com/emp/verify-pin", {
+      const verifyRes = await fetch("https://attendance-system-k7rg.onrender.com/emp/verify-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin, employeeId: empid }),
@@ -122,7 +122,7 @@ export default function Home() {
       }
 
      
-      const res = await fetch("https://attendance-system-29fc.onrender.com/emp/markattandance", {
+      const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/markattandance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -198,7 +198,7 @@ export default function Home() {
 
     setAdminLoading(true);
       try {
-      const res = await fetch("https://attendance-system-29fc.onrender.com/emp/admin", {
+      const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/admin", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json" 

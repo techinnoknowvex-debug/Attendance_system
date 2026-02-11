@@ -48,7 +48,7 @@ export default function Admin(){
      const webtoken=sessionStorage.getItem("webtoken");
      setAddLoading(true);
      try {
-       const res = await fetch("https://attendance-system-29fc.onrender.com/emp/empregister", {
+       const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/empregister", {
          method: "POST",
          headers: {
            "Content-Type": "application/json",
@@ -92,7 +92,7 @@ export default function Admin(){
       const webtoken = sessionStorage.getItem("webtoken");
       setDeleteLoading(true);
       try {
-        const res = await fetch(`https://attendance-system-29fc.onrender.com/emp/delete/${deleteEmpId}`, {
+        const res = await fetch(`https://attendance-system-k7rg.onrender.com/emp/delete/${deleteEmpId}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -175,7 +175,7 @@ export default function Admin(){
       setDailyDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("https://attendance-system-29fc.onrender.com/emp/dailysheet", {
+        const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/dailysheet", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -226,7 +226,7 @@ export default function Admin(){
       setLopLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("https://attendance-system-29fc.onrender.com/emp/marklop", {
+        const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/marklop", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
