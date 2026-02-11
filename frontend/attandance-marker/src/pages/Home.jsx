@@ -6,6 +6,8 @@ import AdminLoginModal from "../components/AdminLoginModal";
 import AttendanceForm from "../components/AttendanceForm";
 import PINModal from "../components/PINModal";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function Home() {
   const navigate = useNavigate();
 
@@ -64,12 +66,12 @@ export default function Home() {
     getLocation();
   }, []);
 
-  // Fetch employees for attendance form
+
   useEffect(() => {
     const fetchEmployees = async () => {
       setEmployeesLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/emp/employees-for-attendance", {
+        const res = await fetch(`${BASE_URL}/emp/employees-for-attendance`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -89,7 +91,7 @@ export default function Home() {
     fetchEmployees();
   }, []);
 
-  // Reset employee ID when department changes
+
   useEffect(() => {
     setEmpid("");
   }, [department]);
@@ -104,8 +106,8 @@ export default function Home() {
       }
 
       setLoading(true);
-      // First verify the PIN
-      const verifyRes = await fetch("http://localhost:5000/emp/verify-pin", {
+     
+      const verifyRes = await fetch(`${BASE_URL}/emp/verify-pin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin, employeeId: empid }),
@@ -119,8 +121,8 @@ export default function Home() {
         return;
       }
 
-      // If PIN is valid, then mark attendance
-      const res = await fetch("http://localhost:5000/emp/markattandance", {
+     
+      const res = await fetch(`${BASE_URL}/emp/markattandance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -195,8 +197,8 @@ export default function Home() {
     }
 
     setAdminLoading(true);
-    try {
-      const res = await fetch("http://localhost:5000/emp/admin", {
+      try {
+      const res = await fetch(`${BASE_URL}/emp/admin`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json" 

@@ -4,7 +4,11 @@ const app=express();
 require("dotenv").config();
 const supabase = require("./config/supabase");
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials:true
+}));
+
 app.use(express.json());
 
 const admin=require("./routes/admin");

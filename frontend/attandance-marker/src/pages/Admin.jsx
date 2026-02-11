@@ -1,4 +1,4 @@
-import { useState,useEffect} from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 import BackgroundAnimation from "../components/BackgroundAnimation";
@@ -8,34 +8,29 @@ import DailySheetForm from "../components/DailySheetForm";
 import LOPModal from "../components/LOPModal";
 import logo from "../assets/logo.png";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export default function Admin(){
     const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = sessionStorage.getItem("webtoken");
-    if (!token) {
-      navigate("/");
-    }
-  }, [navigate]);
-
-
     const [empid,setEmpid]=useState("");
     const [empname,setEmpname]=useState("");
     const [department, setDepartment] = useState("");
+    const [pin, setPin] = useState("");
+    const [deleteEmpId, setDeleteEmpId] = useState("");
     const [year,setYear]=useState("");
     const [month,setMonth]=useState("");
     const [dailyDate, setDailyDate] = useState("");
     const [addLoading, setAddLoading] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const [downloadLoading, setDownloadLoading] = useState(false);
     const [dailyDownloadLoading, setDailyDownloadLoading] = useState(false);
     const [toast, setToast] = useState({ show: false, message: "", type: "success" });
-    const [markLop,setMarkLop]=useState(false)
+ 
     const [showLOPModal, setShowLOPModal] = useState(false);
     const [lopEmpId, setLopEmpId] = useState("");
     const [lopReason, setLopReason] = useState("");
     const [lopDate, setLopDate] = useState("");
     const [lopLoading, setLopLoading] = useState(false);
-    const [pin, setPin] = useState("");
  
    
 
@@ -46,24 +41,24 @@ export default function Admin(){
     const adddata=async (e)=>{
      e.preventDefault();
      
-     if (!empid.trim() || !empname.trim() || !department) {
-       showToast("Please fill in all fields", "error");
+     if (!empid.trim() || !empname.trim() || !department || !pin.trim()) {
+       showToast("Please fill in all fields including PIN", "error");
        return;
      }
      const webtoken=sessionStorage.getItem("webtoken");
      setAddLoading(true);
      try {
-       const res = await fetch("http://localhost:5000/emp/empregister", {
+       const res = await fetch(`${BASE_URL}/emp/empregister`, {
          method: "POST",
          headers: {
            "Content-Type": "application/json",
            Authorization: `Bearer ${webtoken}`
          },
          body: JSON.stringify({
-           employeeId:empid,
-           name:empname,
-           department:department,
-           pin:pin
+           employeeId: empid,
+           name: empname,
+           department: department,
+           pin: pin,
          }),
        });
        
@@ -86,7 +81,39 @@ export default function Admin(){
      }
     }
  
-    
+    const handleDeleteEmployee = async (e) => {
+      e.preventDefault();
+      console.log("empid: ",deleteEmpId);
+      if (!deleteEmpId.trim()) {
+        showToast("Please enter an Employee ID to delete", "error");
+        return;
+      }
+
+      const webtoken = sessionStorage.getItem("webtoken");
+      setDeleteLoading(true);
+      try {
+        const res = await fetch(`${BASE_URL}/emp/delete/${deleteEmpId}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${webtoken}`
+          }
+        });
+
+        const deleteResult = await res.json();
+        
+        if (res.ok) {
+          showToast(deleteResult.message || "Employee deleted successfully!", "success");
+          setDeleteEmpId("");
+        } else {
+          showToast(deleteResult.message || "Failed to delete employee", "error");
+        }
+      } catch (error) {
+        showToast("Server error. Please try again later.", "error");
+      } finally {
+        setDeleteLoading(false);
+      }
+    }
 
     const handleprintingdata=async (e)=>{
       e.preventDefault();
@@ -99,7 +126,7 @@ export default function Admin(){
       setDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try{
-        const res=await fetch("http://localhost:5000/emp/empdata",{
+        const res=await fetch(`${BASE_URL}/emp/empdata`,{
           method:"POST",
           headers: {
             "Content-Type": "application/json",
@@ -148,7 +175,7 @@ export default function Admin(){
       setDailyDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("http://localhost:5000/emp/dailysheet", {
+        const res = await fetch(`${BASE_URL}/emp/dailysheet`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -199,7 +226,7 @@ export default function Admin(){
       setLopLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("http://localhost:5000/emp/marklop", {
+        const res = await fetch(`${BASE_URL}/emp/marklop`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -246,13 +273,13 @@ export default function Admin(){
           />
         )}
 
-        {/* Header with Logo and Company Name */}
+    
         <div className="absolute top-5 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-3">
           <img src={logo} alt="Logo" className="h-12 w-12 object-contain" />
           <h1 className="text-2xl font-bold text-[#FF9500]">INNOKNOWVEX</h1>
         </div>
 
-        {/* Back Button */}
+      
         <button
           onClick={() => navigate("/")}
           className="absolute top-5 left-5 z-10 bg-cream-100/80 hover:bg-cream-200 text-black px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
@@ -264,9 +291,9 @@ export default function Admin(){
         </button>
 
         <div className="relative z-10 w-full max-w-7xl">
-          {/* Main Row: Add Employee, Download Report, and Daily Sheet + LOP */}
+      
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Add Employee Card */}
+         
             <AddEmployeeForm
               empid={empid}
               setEmpid={setEmpid}
@@ -274,13 +301,13 @@ export default function Admin(){
               setEmpname={setEmpname}
               department={department}
               setDepartment={setDepartment}
-              addLoading={addLoading}
               pin={pin}
               setPin={setPin}
+              addLoading={addLoading}
               onAddSubmit={adddata}
             />
 
-            {/* Download Report Card */}
+         
             <DownloadReportForm
               year={year}
               setYear={setYear}
@@ -290,7 +317,7 @@ export default function Admin(){
               onSubmit={handleprintingdata}
             />
 
-            {/* Daily Download Sheet and LOP Card */}
+           
             <DailySheetForm
               dailyDate={dailyDate}
               setDailyDate={setDailyDate}
@@ -304,10 +331,8 @@ export default function Admin(){
 
       
 
-       {/* LOP Modal */}
+     
        <LOPModal
-         markLop={markLop}
-         setMarkLop={setMarkLop}
          showLOPModal={showLOPModal}
          setShowLOPModal={setShowLOPModal}
          lopEmpId={lopEmpId}
