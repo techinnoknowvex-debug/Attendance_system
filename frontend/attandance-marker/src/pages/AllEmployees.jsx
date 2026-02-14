@@ -130,7 +130,7 @@ export default function AllEmployees() {
 
     return (
         <>
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-100 via-cream-200 to-cream-300 relative overflow-hidden py-12 px-4">
+            <div className="min-h-screen flex justify-center items-start bg-gradient-to-br from-cream-100 via-cream-200 to-cream-300 relative overflow-hidden pt-20 pb-8 px-3 sm:px-4 md:items-center md:pt-12 md:pb-12">
                 {/* Animated Background Elements */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-20 left-10 w-72 h-72 bg-light-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -150,7 +150,7 @@ export default function AllEmployees() {
                 {/* Back Button */}
                 <button
                     onClick={() => navigate("/admin")}
-                    className="absolute top-5 left-5 z-10 bg-cream-100/80 hover:bg-cream-200 text-black px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+                    className="absolute top-5 left-5 z-10 bg-cream-100/80 hover:bg-cream-200 text-black px-3 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm sm:px-4 sm:text-base"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -158,7 +158,7 @@ export default function AllEmployees() {
                     Back to Admin
                 </button>
 
-                <div className="relative z-10 w-full max-w-6xl">
+                <div className="relative z-10 w-full max-w-6xl px-2 sm:px-0">
                     <div className="glass-effect p-8 rounded-3xl shadow-2xl backdrop-blur-lg border border-cream-300/20">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-3 bg-[#FF9500] rounded-xl">

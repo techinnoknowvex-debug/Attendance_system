@@ -10,9 +10,10 @@ export default function AdminLoginModal({
 }) {
   return (
     <>
-      <div className="absolute top-5 right-5 z-10">
+      {/* Admin button – kept visible and easy to tap on mobile */}
+      <div className="fixed top-4 right-4 z-30 sm:top-5 sm:right-5">
         <button
-          className="bg-[#FF9500] hover:bg-[#FF8500] text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+          className="bg-[#FF9500] hover:bg-[#FF8500] text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm sm:px-6 sm:py-3 sm:text-base"
           onClick={() => setAdminshow(!Adminshow)}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,8 +22,19 @@ export default function AdminLoginModal({
           Admin
         </button>
 
-        {Adminshow && (
-          <div className="glass-effect p-6 mt-4 rounded-2xl shadow-2xl w-80 backdrop-blur-lg animate-slide-in">
+      </div>
+
+      {/* Admin login modal – centered full-screen overlay on mobile */}
+      {Adminshow && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center px-4 sm:px-0">
+          {/* Dimmed background */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setAdminshow(false)}
+          />
+
+          {/* Modal card */}
+          <div className="relative glass-effect p-6 rounded-2xl shadow-2xl w-full max-w-sm backdrop-blur-lg animate-slide-in">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-black">Admin Login</h2>
               <button
@@ -81,8 +93,8 @@ export default function AdminLoginModal({
               </button>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

@@ -33,19 +33,23 @@ export default function Home() {
   const [employees, setEmployees] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
 
+
+
+
+
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
   };
 
-  const getLocation = () => {
+  useEffect(() => {
     if (!navigator.geolocation) {
       showToast("Geolocation not supported by your browser", "error");
-      setLocationLoading(false);
       return;
     }
-
+  
     setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
+  
+    const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setLocation({
           lat: position.coords.latitude,
@@ -58,14 +62,16 @@ export default function Home() {
         showToast("Location permission denied. Please enable location access.", "error");
         setLocationLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000,
+      }
     );
-  };
-
-  useEffect(() => {
-    getLocation();
+  
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
-
+  
 
   useEffect(() => {
     const fetchEmployees = async () => {

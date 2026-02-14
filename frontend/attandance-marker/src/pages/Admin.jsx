@@ -260,7 +260,7 @@ export default function Admin(){
  
     return(
         <>
-       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-100 via-cream-200 to-cream-300 relative overflow-hidden py-12 px-4">
+       <div className="min-h-screen flex justify-center items-start bg-gradient-to-br from-cream-100 via-cream-200 to-cream-300 relative overflow-hidden pt-20 pb-8 px-4 sm:px-6 md:items-center md:pt-12 md:pb-12">
         {/* Animated Background Elements */}
         <BackgroundAnimation />
 
@@ -282,7 +282,7 @@ export default function Admin(){
       
         <button
           onClick={() => navigate("/")}
-          className="absolute top-5 left-5 z-10 bg-cream-100/80 hover:bg-cream-200 text-black px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+          className="absolute top-5 left-5 z-10 bg-cream-100/80 hover:bg-cream-200 text-black px-3 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm sm:px-4 sm:text-base"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -290,7 +290,7 @@ export default function Admin(){
           Back to Home
         </button>
 
-        <div className="relative z-10 w-full max-w-7xl">
+        <div className="relative z-10 w-full max-w-7xl px-2 sm:px-0">
       
           <div className="grid md:grid-cols-3 gap-8">
          
