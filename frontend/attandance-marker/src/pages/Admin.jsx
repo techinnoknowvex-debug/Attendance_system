@@ -15,7 +15,8 @@ export default function Admin(){
     const [empid,setEmpid]=useState("");
     const [empname,setEmpname]=useState("");
     const [department, setDepartment] = useState("");
-    const [pin, setPin] = useState("");
+    const [email, setEmail] = useState("");
+    const [employeeType, setEmployeeType] = useState("");
     const [deleteEmpId, setDeleteEmpId] = useState("");
     const [year,setYear]=useState("");
     const [month,setMonth]=useState("");
@@ -41,14 +42,14 @@ export default function Admin(){
     const adddata=async (e)=>{
      e.preventDefault();
      
-     if (!empid.trim() || !empname.trim() || !department || !pin.trim()) {
-       showToast("Please fill in all fields including PIN", "error");
+     if (!empid.trim() || !empname.trim() || !department || !email.trim() || !employeeType) {
+       showToast("Please fill in all fields including Employee Type", "error");
        return;
      }
      const webtoken=sessionStorage.getItem("webtoken");
      setAddLoading(true);
      try {
-       const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/empregister", {
+       const res = await fetch("http://localhost:5000/emp/empregister", {
          method: "POST",
          headers: {
            "Content-Type": "application/json",
@@ -58,7 +59,8 @@ export default function Admin(){
            employeeId: empid,
            name: empname,
            department: department,
-           pin: pin,
+           email: email,
+           employeeType: employeeType,
          }),
        });
        
@@ -69,7 +71,8 @@ export default function Admin(){
          setEmpid("");
          setEmpname("");
          setDepartment("");
-         setPin("");
+         setEmail("");
+         setEmployeeType("");
        }else{
          showToast(result.message || "Failed to add employee", "error");
        }
@@ -94,7 +97,7 @@ export default function Admin(){
       setDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try{
-        const res=await fetch(`https://attendance-system-k7rg.onrender.com/emp/empdata`,{
+        const res=await fetch(`http://localhost:5000/emp/empdata`,{
           method:"POST",
           headers: {
             "Content-Type": "application/json",
@@ -143,7 +146,7 @@ export default function Admin(){
       setDailyDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/dailysheet", {
+        const res = await fetch("http://localhost:5000/emp/dailyattandacetable", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -155,23 +158,16 @@ export default function Admin(){
         });
 
         if (!res.ok) {
-          throw new Error("Failed to download file");
+          throw new Error("Failed to fetch daily sheet");
         }
 
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `daily_attendance_${dailyDate}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        
-        showToast("Daily attendance sheet downloaded successfully!", "success");
+        const data = await res.json();
+        navigate("/daily-attendance", {state:{dailyData: data, selectedDate: dailyDate } });
+
+        showToast("Daily attendance sheet opened!", "success");
         setDailyDate("");
       } catch (err) {
-        showToast("Failed to download daily sheet. Please try again.", "error");
+        showToast("Failed to load daily sheet. Please try again.", "error");
         console.log("Error", err);
       } finally {
         setDailyDownloadLoading(false);
@@ -194,7 +190,7 @@ export default function Admin(){
       setLopLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/marklop", {
+        const res = await fetch("http://localhost:5000/emp/marklop", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -269,8 +265,10 @@ export default function Admin(){
               setEmpname={setEmpname}
               department={department}
               setDepartment={setDepartment}
-              pin={pin}
-              setPin={setPin}
+              employeeType={employeeType}
+              setEmployeeType={setEmployeeType}
+              email={email}
+              setEmail={setEmail}
               addLoading={addLoading}
               onAddSubmit={adddata}
             />

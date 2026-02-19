@@ -28,8 +28,11 @@ export default function Home() {
   const [adminEmpid, setAdminEmpid] = useState("");
   const [password, setPassword] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
-  const [pin, setPin] = useState("");
-  const [askPin, setAskPin] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [canResendOtp, setCanResendOtp] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
 
@@ -77,7 +80,7 @@ export default function Home() {
     const fetchEmployees = async () => {
       setEmployeesLoading(true);
       try {
-        const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/employees-for-attendance", {
+        const res = await fetch("http://localhost:5000/emp/employees-for-attendance", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -102,77 +105,126 @@ export default function Home() {
     setEmpid("");
   }, [department]);
 
+ 
+  useEffect(() => {
+    let interval;
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (otpTimer === 0 && showOtpModal) {
+      setCanResendOtp(true);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer, showOtpModal]);
 
-  const pinverification = async (e) => {
+
+  const generateOTP = async () => {
+    try {
+      setOtpLoading(true);
+
+      const res = await fetch("http://localhost:5000/emp/generateOTP", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_id: empid }),
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        showToast(data.message || "OTP sent to your email!", "success");
+        setShowOtpModal(true);
+        setOtp("");
+        setOtpTimer(60);
+        setCanResendOtp(false);
+      } else {
+        showToast(data.error || data.message || "Failed to generate OTP", "error");
+      }
+    } catch (error) {
+      console.error("OTP generation error:", error);
+      showToast("Failed to generate OTP. Please try again.", "error");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const resendOTP = async () => {
+    await generateOTP();
+  };
+
+
+  const verifyAndMarkAttendance = async (e) => {
     e.preventDefault();
     try {
-      if (!pin.trim()) {
-        showToast("Please enter your PIN", "error");
+      if (!otp.trim()) {
+        showToast("Please enter the OTP", "error");
         return;
       }
 
       setLoading(true);
+
      
-      const verifyRes = await fetch("https://attendance-system-k7rg.onrender.com/emp/verify-pin", {
+      const verifyRes = await fetch("http://localhost:5000/emp/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, employeeId: empid }),
+        body: JSON.stringify({ employee_id: empid, otp }),
       });
       const verifyData = await verifyRes.json();
 
-      if (!verifyRes.ok || !verifyData.success) {
-        showToast(verifyData.message || "PIN verification failed. Please try again.", "error");
-        setPin("");
+      if (!verifyRes.ok) {
+        showToast(verifyData.error || verifyData.message || "OTP verification failed. Please try again.", "error");
+        setOtp("");
         setLoading(false);
         return;
       }
 
-     
-      const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/markattandance", {
+      
+      const markRes = await fetch("http://localhost:5000/emp/markattandance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employeeId: empid,
           status,
-          authType: authType,
-          latitude: location.lat,
-          longitude: location.lon,
-          accuracy: location.accuracy,
+          authType: status === "Work From Home" ? "" : authType,
+          latitude: status === "Work From Home" ? null : location.lat,
+          longitude: status === "Work From Home" ? null : location.lon,
+          timestamp: new Date().toISOString(),
         }),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        showToast(data.message || "Attendance marked successfully!", "success");
+      const markData = await markRes.json();
+      if (markRes.ok) {
+        showToast(markData.message || "Attendance marked successfully!", "success");
         setEmpid("");
         setDepartment("");
         setStatus("");
         setAuthType("");
-        setPin("");
-        setAskPin(false);
+        setOtp("");
+        setShowOtpModal(false);
       } else {
-        showToast(data.message || "Something went wrong. Please try again.", "error");
-        setPin("");
+        showToast(markData.message || "Something went wrong. Please try again.", "error");
+        setOtp("");
       }
     } catch (error) {
-      console.error("PIN verification error:", error);
-      showToast("PIN verification failed. Please try again.", "error");
-      setPin("");
+      console.error("Verification error:", error);
+      showToast("Verification failed. Please try again.", "error");
+      setOtp("");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // Attendance submit
+  
   const markattandance = async (e) => {
     e.preventDefault();
 
-    if (!location.lat || !location.lon) {
+    if (status !== "Work From Home" && (!location.lat || !location.lon)) {
       showToast("Please wait for location to be detected", "error");
       return;
     }
-  
-    if (authType === "" && status=="Present") {
+
+    if (status === "Present" && authType === "") {
       showToast("Please select Login or Logout", "error");
       return;
     }
@@ -188,9 +240,9 @@ export default function Home() {
       showToast("Please select your status", "error");
       return;
     }
-    
-    // Open PIN modal instead of calling API directly
-    setAskPin(true);
+
+   
+    await generateOTP();
   };
 
  
@@ -204,7 +256,7 @@ export default function Home() {
 
     setAdminLoading(true);
       try {
-      const res = await fetch("https://attendance-system-k7rg.onrender.com/emp/admin", {
+      const res = await fetch("http://localhost:5000/emp/admin", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json" 
@@ -276,14 +328,17 @@ export default function Home() {
         onSubmit={markattandance}
       />
 
-      {/* PIN Verification Modal */}
+      {/* OTP Verification Modal */}
       <PINModal
-        showPINModal={askPin}
-        setShowPINModal={setAskPin}
-        pin={pin}
-        setPin={setPin}
+        showPINModal={showOtpModal}
+        setShowPINModal={setShowOtpModal}
+        otp={otp}
+        setOtp={setOtp}
         pinLoading={loading}
-        onPINSubmit={pinverification}
+        otpTimer={otpTimer}
+        canResendOtp={canResendOtp}
+        onPINSubmit={verifyAndMarkAttendance}
+        onResendOtp={resendOTP}
       />
     </div>
   );

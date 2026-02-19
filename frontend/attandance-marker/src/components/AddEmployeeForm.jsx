@@ -5,9 +5,11 @@ export default function AddEmployeeForm({
   setEmpname,
   department,
   setDepartment,
+  employeeType,
+  setEmployeeType,
   addLoading,
-  pin,
-  setPin,
+  email,
+  setEmail,
   onAddSubmit,
 }) {
   return (
@@ -89,20 +91,46 @@ export default function AddEmployeeForm({
           </div>
         </div>
 
-         <div>
-          <label className="block text-sm font-medium text-black mb-2">Set Employee Pin</label>
+        <div>
+          <label className="block text-sm font-medium text-black mb-2">Employee Type</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <select
+              value={employeeType}
+              onChange={(e) => setEmployeeType(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all appearance-none bg-cream-100"
+            >
+              <option value="">Select Employee Type</option>
+              <option value="Full Time">Full Time</option>
+              <option value="Intern">Intern</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+         <div>
+          <label className="block text-sm font-medium text-black mb-2">Employee Email</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
             <input 
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all bg-cream-100" 
-              type="text" 
-              placeholder="Enter Employee Pin" 
-              value={pin} 
-              onChange={(e)=>setPin(e.target.value)}
+              type="email" 
+              placeholder="Enter Employee Email" 
+              value={email} 
+              onChange={(e)=>setEmail(e.target.value)}
+              required
             />
           </div>
         </div>

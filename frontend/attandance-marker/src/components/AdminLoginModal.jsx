@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 export default function AdminLoginModal({ 
   Adminshow, 
   setAdminshow, 
@@ -8,9 +9,11 @@ export default function AdminLoginModal({
   adminLoading, 
   onAdminSubmit 
 }) {
+
+   const [showPassword, setShowPassword] = useState(false);
   return (
     <>
-      {/* Admin button – kept visible and easy to tap on mobile */}
+ 
       <div className="fixed top-4 right-4 z-30 sm:top-5 sm:right-5">
         <button
           className="bg-[#FF9500] hover:bg-[#FF8500] text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm sm:px-6 sm:py-3 sm:text-base"
@@ -24,7 +27,7 @@ export default function AdminLoginModal({
 
       </div>
 
-      {/* Admin login modal – centered full-screen overlay on mobile */}
+    
       {Adminshow && (
         <div className="fixed inset-0 z-40 flex items-center justify-center px-4 sm:px-0">
           {/* Dimmed background */}
@@ -61,13 +64,19 @@ export default function AdminLoginModal({
               <div>
                 <label className="block text-sm font-medium text-black mb-2">Password</label>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all bg-cream-100"
                 />
+                <button type="button"onClick={() => setShowPassword((prev) => !prev)}
+      className="absolute inset-y-0 right-3 flex items-center text-gray-600">
+        {showPassword ? "🙈" : "👁️"}
+        </button>
+                
               </div>
+
 
               <button
                 type="submit"

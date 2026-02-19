@@ -17,15 +17,14 @@ export default function AttendanceForm({
   loading,
   onSubmit
 }) {
-  // Get unique departments
+ 
   const departments = [...new Set(employees.map(emp => emp.department).filter(Boolean))].sort();
 
-  // Filter employees by department and sort by last 4 digits of employee_id
+
   const filteredEmployees = department
     ? employees
         .filter(emp => emp.department === department)
         .sort((a, b) => {
-          // Extract last 4 characters and convert to number for sorting
           const last4A = parseInt(a.employee_id.slice(-4)) || 0;
           const last4B = parseInt(b.employee_id.slice(-4)) || 0;
           return last4A - last4B;
@@ -40,7 +39,7 @@ export default function AttendanceForm({
           <h1 className="text-3xl font-bold text-[#FF9500]">INNOKNOWVEX</h1>
         </div>
         
-        {/* Location Status */}
+
         <LocationStatus locationLoading={locationLoading} location={location} />
 
         <h2 className="text-3xl font-bold text-center mb-2 text-[#FF9500]">
@@ -108,53 +107,6 @@ export default function AttendanceForm({
           </div>
          
           <div>
-            <label className="block text-sm font-medium text-black mb-2">Attendance Type</label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className={`relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
-                authType === "login" 
-                  ? "border-[#FF9500] bg-[#FFF8F0] shadow-md" 
-                  : "border-gray-300 hover:border-gray-400 bg-cream-100"
-              }`}>
-                <input
-                  type="radio"
-                  name="auth"
-                  value="login"
-                  checked={authType === "login"}
-                  onChange={(e) => setAuthType(e.target.value)}
-                  className="sr-only"
-                />
-                <div className="flex flex-col items-center gap-2">
-                  <svg className={`w-6 h-6 ${authType === "login" ? "text-[#FF9500]" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
-                  <span className={`font-medium ${authType === "login" ? "text-[#FF9500]" : "text-black"}`}>Login</span>
-                </div>
-              </label>
-
-              <label className={`relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
-                authType === "logout" 
-                  ? "border-[#FF9500] bg-[#FFF8F0] shadow-md" 
-                  : "border-gray-300 hover:border-gray-400 bg-cream-100"
-              }`}>
-                <input
-                  type="radio"
-                  name="auth"
-                  value="logout"
-                  checked={authType === "logout"}
-                  onChange={(e) => setAuthType(e.target.value)}
-                  className="sr-only"
-                />
-                <div className="flex flex-col items-center gap-2">
-                  <svg className={`w-6 h-6 ${authType === "logout" ? "text-[#FF9500]" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className={`font-medium ${authType === "logout" ? "text-[#FF9500]" : "text-black"}`}>Logout</span>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-black mb-1">Status</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -164,13 +116,18 @@ export default function AttendanceForm({
               </div>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  if (e.target.value !== "Present") {
+                    setAuthType("");
+                  }
+                }}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all appearance-none bg-cream-100"
               >
                 <option value="">Select Status</option>
                 <option value="Present">Present</option>
                 <option value="Absent">Absent</option>
-                <option value="Leave">Leave</option>
+                <option value="Work From Home">Work From Home</option>
               </select>
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,9 +137,62 @@ export default function AttendanceForm({
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-black mb-2">Attendance Type</label>
+            {status === "Present" ? (
+              <div className="grid grid-cols-2 gap-3">
+                <label className={`relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                  authType === "login" 
+                    ? "border-[#FF9500] bg-[#FFF8F0] shadow-md" 
+                    : "border-gray-300 hover:border-gray-400 bg-cream-100"
+                }`}>
+                  <input
+                    type="radio"
+                    name="auth"
+                    value="login"
+                    checked={authType === "login"}
+                    onChange={(e) => setAuthType(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className="flex flex-col items-center gap-2">
+                    <svg className={`w-6 h-6 ${authType === "login" ? "text-[#FF9500]" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    <span className={`font-medium ${authType === "login" ? "text-[#FF9500]" : "text-black"}`}>Login</span>
+                  </div>
+                </label>
+
+                <label className={`relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                  authType === "logout" 
+                    ? "border-[#FF9500] bg-[#FFF8F0] shadow-md" 
+                    : "border-gray-300 hover:border-gray-400 bg-cream-100"
+                }`}>
+                  <input
+                    type="radio"
+                    name="auth"
+                    value="logout"
+                    checked={authType === "logout"}
+                    onChange={(e) => setAuthType(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className="flex flex-col items-center gap-2">
+                    <svg className={`w-6 h-6 ${authType === "logout" ? "text-[#FF9500]" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className={`font-medium ${authType === "logout" ? "text-[#FF9500]" : "text-black"}`}>Logout</span>
+                  </div>
+                </label>
+              </div>
+            ) : (
+              <div className="bg-cream-100 p-3 rounded-xl text-sm text-gray-600 text-center">
+                {status === "Work From Home" ? "Work From Home - No location required" : "Select Present status to choose Login/Logout"}
+              </div>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={loading || locationLoading || !location.lat}
+            disabled={loading || (status !== "Work From Home" && (locationLoading || !location.lat))}
             className="w-full bg-[#FF9500] hover:bg-[#FF8500] text-white py-3 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
           >
             {loading ? (

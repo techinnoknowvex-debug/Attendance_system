@@ -1,38 +1,56 @@
 export default function PINModal({
   showPINModal,
   setShowPINModal,
-  pin,
-  setPin,
+  otp,
+  setOtp,
   pinLoading,
-  onPINSubmit
+  otpTimer = 0,
+  onPINSubmit,
+  onResendOtp
 }) {
   if (!showPINModal) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        <h2 className="text-2xl font-bold text-[#FF9500] mb-6">Verify PIN</h2>
-        <p className="text-gray-600 mb-6">Please enter your PIN to confirm attendance:</p>
+        <h2 className="text-2xl font-bold text-[#FF9500] mb-6">Verify OTP</h2>
+        <p className="text-gray-600 mb-6">Please enter the OTP sent to your email:</p>
         <form onSubmit={onPINSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-black mb-2">PIN</label>
+            <label className="block text-sm font-medium text-black mb-2">OTP</label>
             <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && onPINSubmit(e)}
-              placeholder="Enter PIN"
+              placeholder="Enter OTP"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] bg-cream-100"
               autoFocus
               required
             />
           </div>
+
+          {/* Resend OTP Section */}
+          <div className="flex items-center justify-between bg-cream-100 p-3 rounded-xl">
+            <span className="text-sm text-gray-600">
+              {otpTimer > 0 ? `Resend in ${otpTimer}s` : "OTP expired?"}
+            </span>
+            <button
+              type="button"
+              onClick={onResendOtp}
+              disabled={otpTimer > 0 || pinLoading}
+              className="text-xs bg-[#FF9500] hover:bg-[#FF8500] text-white px-3 py-1.5 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Resend OTP
+            </button>
+          </div>
+
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => {
                 setShowPINModal(false);
-                setPin("");
+                setOtp("");
               }}
               className="flex-1 bg-gray-300 hover:bg-gray-400 text-black py-3 rounded-xl font-semibold transition-all"
             >
@@ -52,7 +70,7 @@ export default function PINModal({
                   Verifying...
                 </>
               ) : (
-                "Verify PIN"
+                "Verify OTP"
               )}
             </button>
           </div>

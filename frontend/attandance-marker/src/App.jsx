@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
 import AllEmployees from "./pages/AllEmployees";
+import DailyAttendance from "./pages/DailyAttendance";
 
 const AdminRoute = ({ children }) => {
   const token = sessionStorage.getItem("webtoken");
@@ -16,7 +17,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home/>} />
 
         <Route
           path="/admin"
@@ -32,6 +33,14 @@ export default function App() {
           element={
             <AdminRoute>
               <AllEmployees />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/daily-attendance"
+          element={
+            <AdminRoute>
+              <DailyAttendance />
             </AdminRoute>
           }
         />
