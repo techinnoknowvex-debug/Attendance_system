@@ -97,7 +97,7 @@ const sendEmail =require("../config/email");
         })
       }
       
-      // Skip authType validation for non-Present statuses
+      // Skip authType validation for non-Present statuses (handle first)
       if (status !== "Present") {
         if(status=="Absent" || status=="Work From Home"){
           return res.status(200).json({
@@ -221,13 +221,14 @@ const sendEmail =require("../config/email");
             logout_time: null,
           });
 
-        if (insertError) {
-          return res.status(500).json({ error: insertError.message });
-        }
+          if (insertError) {
+            console.error("Work From Home insert error:", insertError);
+            return res.status(500).json({ error: insertError.message });
+          }
 
-        return res.status(201).json({
-          message:"Work From Home marked for the day"
-        });
+          return res.status(201).json({
+            message:"Work From Home marked for the day"
+          });
         }
 
         if(status=="Absent"){
@@ -241,16 +242,19 @@ const sendEmail =require("../config/email");
             logout_time: null,
           });
 
-        if (insertError) {
-          return res.status(500).json({ error: insertError.message });
-        }
+          if (insertError) {
+            console.error("Absent insert error:", insertError);
+            return res.status(500).json({ error: insertError.message });
+          }
 
-        return res.status(201).json({
-          message:"Absent is marked for the day"
-        });
+          return res.status(201).json({
+            message:"Absent is marked for the day"
+          });
         }
       }
-            // Validation: Reject logout if no login exists (no record at all)
+      
+      // Present status with login/logout handling
+      // Validation: Reject logout if no login exists (no record at all)
       if (authType === "logout") {
         const response = {
           message: "Cannot logout: No login time recorded for today. Please login first."

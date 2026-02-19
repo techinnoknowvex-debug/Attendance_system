@@ -164,9 +164,9 @@ export default function Home() {
         body: JSON.stringify({
           employeeId: empid,
           status,
-          authType: authType,
-          latitude: location.lat,
-          longitude: location.lon,
+          authType: status === "Work From Home" ? "" : authType,
+          latitude: status === "Work From Home" ? null : location.lat,
+          longitude: status === "Work From Home" ? null : location.lon,
           timestamp: new Date().toISOString(),
         }),
       });
