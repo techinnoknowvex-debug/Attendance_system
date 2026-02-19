@@ -216,6 +216,42 @@ export default function Home() {
   };
 
   
+  const markAttendanceWithoutOTP = async () => {
+  try {
+    setLoading(true);
+
+    const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employeeId: empid,
+        status,
+        authType: status === "Work From Home" ? "" : authType,
+        latitude: status === "Work From Home" ? null : location.lat,
+        longitude: status === "Work From Home" ? null : location.lon,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    const markData = await markRes.json();
+
+    if (markRes.ok) {
+      showToast(markData.message || "Attendance marked successfully!", "success");
+      setEmpid("");
+      setDepartment("");
+      setStatus("");
+      setAuthType("");
+    } else {
+      showToast(markData.message || "Something went wrong.", "error");
+    }
+  } catch (error) {
+    showToast("Failed to mark attendance.", "error");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  
   const markattandance = async (e) => {
     e.preventDefault();
 
@@ -241,8 +277,12 @@ export default function Home() {
       return;
     }
 
-   
-    await generateOTP();
+    
+    if (status === "Present" && authType === "Login") {
+  await generateOTP();
+} else {
+  await markAttendanceWithoutOTP();
+}
   };
 
  
