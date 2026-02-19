@@ -59,6 +59,7 @@ export default function Home() {
           lon: position.coords.longitude,
           accuracy: position.coords.accuracy,
         });
+        console.log("User Location - Lat:", position.coords.latitude, "Lon:", position.coords.longitude);
         setLocationLoading(false);
       },
       (error) => {
@@ -123,6 +124,8 @@ export default function Home() {
     try {
       setOtpLoading(true);
 
+      console.log("Generating OTP for Employee ID:", empid, "Status:", status);
+
       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,6 +133,8 @@ export default function Home() {
       });
 
       const data = await res.json();
+
+      console.log("OTP Generation Response:", data);
       
       if (res.ok) {
         showToast(data.message || "OTP sent to your email!", "success");
@@ -164,6 +169,7 @@ export default function Home() {
 
       setLoading(true);
 
+      console.log("Verifying OTP - Employee ID:", empid, "OTP:", otp, "Status:", status, "AuthType:", authType);
      
       const verifyRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/verify-otp", {
         method: "POST",
@@ -171,6 +177,8 @@ export default function Home() {
         body: JSON.stringify({ employee_id: empid, otp }),
       });
       const verifyData = await verifyRes.json();
+
+      console.log("OTP Verification Response:", verifyData);
 
       if (!verifyRes.ok) {
         showToast(verifyData.error || verifyData.message || "OTP verification failed. Please try again.", "error");
@@ -186,12 +194,13 @@ export default function Home() {
         body: JSON.stringify({
           employeeId: empid,
           status,
-          authType: authType,
+          authType: status === "Present" ? authType.toLowerCase() : "",
           latitude: status === "Present" && authType === "Login" ? location.lat : null,
           longitude: status === "Present" && authType === "Login" ? location.lon : null,
           timestamp: new Date().toISOString(),
         }),
       });
+      console.log("Sending Data - Status:", status, "AuthType:", status === "Present" ? authType.toLowerCase() : "", "Lat:", status === "Present" && authType === "Login" ? location.lat : null, "Lon:", status === "Present" && authType === "Login" ? location.lon : null);
 
       const markData = await markRes.json();
       if (markRes.ok) {
@@ -226,12 +235,13 @@ export default function Home() {
       body: JSON.stringify({
         employeeId: empid,
         status,
-        authType: status === "Present" ? authType : "",
+        authType: status === "Present" ? authType.toLowerCase() : "",
         latitude: status === "Present" && authType === "Logout" ? location.lat : null,
         longitude: status === "Present" && authType === "Logout" ? location.lon : null,
         timestamp: new Date().toISOString(),
       }),
     });
+    console.log("Sending Location (without OTP) - Lat:", status === "Present" && authType === "Logout" ? location.lat : null, "Lon:", status === "Present" && authType === "Logout" ? location.lon : null);
 
     const markData = await markRes.json();
 

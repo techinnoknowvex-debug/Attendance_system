@@ -363,12 +363,18 @@ if (!emailSent) {
 
 Router.post("/verify-otp",async(req,res)=>{
   const {employee_id,otp}=req.body
+  console.log("Verifying OTP - Employee ID:", employee_id, "OTP:", otp);
   try{
-    const {data:employee}=await supabase
+    const {data:employee, error: empError}=await supabase
     .from(EMPLOYEES_TABLE)
     .select('id')
     .eq('employee_id',employee_id)
     .single();
+
+    if (empError || !employee) {
+      console.log("Employee not found:", employee_id);
+      return res.status(404).json({ error: "Employee not found" });
+    }
 
     const {data:validotp,error:otpError}=await supabase
     .from(OTP_Table)
@@ -376,6 +382,8 @@ Router.post("/verify-otp",async(req,res)=>{
     .eq('employee_id',employee.id)
     .eq("otp", otp)
     .single();
+
+    console.log("OTP lookup result:", validotp, "Error:", otpError);
 
     if (otpError || !validotp) {
       return res.status(400).json({ error: "Invalid OTP" });
@@ -396,6 +404,7 @@ Router.post("/verify-otp",async(req,res)=>{
     return res.status(200).json({ message: "OTP Verified Successfully" });
 
   }catch (error) {
+    console.log("Verify OTP error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 })
