@@ -4,6 +4,7 @@
 module.exports = {
   EMPLOYEES_TABLE: 'employees',
   ATTENDANCE_TABLE: 'attendance',
-  LOP_TABLE: 'lop'
+  LOP_TABLE: 'lop',
+  OTP_Table:'attendance_otp'
 };
 

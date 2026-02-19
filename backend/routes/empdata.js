@@ -43,10 +43,22 @@ const verifyToken=require("../middleware/admincheck")
 
       console.log("Query date range:", { startDate, endDate, year: yearNum, month: monthNum });
 
-      // Get all employees for mapping FIRST
+      // Get all attendance records for the month with Present status
+      const { data: attendanceRecords, error: attError } = await supabase
+        .from(ATTENDANCE_TABLE)
+        .select('*')
+        .gte('timestamp', startDate.toISOString())
+        .lt('timestamp', endDate.toISOString())
+        .eq('status', 'Present');
+
+      if (attError) {
+        return res.status(500).json({ message: attError.message });
+      }
+
+      // Get all employees to map IDs
       const { data: allEmployeesForMapping, error: empMapError } = await supabase
         .from(EMPLOYEES_TABLE)
-        .select('*');
+        .select('id, employee_id, name, employee_type');
 
       if (empMapError) {
         return res.status(500).json({ message: empMapError.message });
@@ -54,75 +66,40 @@ const verifyToken=require("../middleware/admincheck")
 
       const employeeMapById = new Map(allEmployeesForMapping.map(emp => [emp.id, emp]));
 
-      // Get all attendance records for the month
-      const { data: attendanceRecords, error: attError } = await supabase
+      // Get all attendance records for the month (not just Present)
+      const { data: allAttendanceForCalc, error: allAttError } = await supabase
         .from(ATTENDANCE_TABLE)
         .select('*')
         .gte('timestamp', startDate.toISOString())
         .lt('timestamp', endDate.toISOString());
 
-      if (attError) {
-        return res.status(500).json({ message: attError.message });
+      if (allAttError) {
+        return res.status(500).json({ message: allAttError.message });
       }
-
-      console.log("Total attendance records found:", attendanceRecords.length);
-      console.log("Present records:", attendanceRecords.filter(r => r.status === 'Present').length);
 
       // Group attendance by employee and calculate metrics
       const employeeMap = new Map();
 
       // Initialize all employees in the map
-      allEmployeesForMapping.forEach(emp => {
-        employeeMap.set(emp.id, {
-          employee: emp,
-          attendanceRecords: [],
-          presentDays: 0
+      allEmployeesForMapping.forEach(employee => {
+        employeeMap.set(employee.id, {
+          employee: employee,
+          presentRecords: [],
+          presentDays: 0,
+          absentDays: 0,
+          lopDays: 0
         });
       });
 
-      // Add attendance records
+      // Count present days
       attendanceRecords.forEach(record => {
-        if (record.status !== 'Present') return; // Only count Present records
-        
         const empId = record.employee_id;
-        
-        if (!employeeMap.has(empId)) {
-          console.log("Warning: attendance record for unknown employee ID:", empId);
-          return;
+        if (employeeMap.has(empId)) {
+          const empData = employeeMap.get(empId);
+          empData.presentRecords.push(record);
+          empData.presentDays++;
         }
-
-        const empData = employeeMap.get(empId);
-        empData.attendanceRecords.push(record);
-        empData.presentDays++;
       });
-
-      // Calculate daysLessThan9Hours for each employee
-      const data = Array.from(employeeMap.values()).map(empData => {
-        const daysLessThan9Hours = empData.attendanceRecords.filter(record => {
-          if (!record.login_time || !record.logout_time) return false;
-          
-          const loginTime = new Date(record.login_time);
-          const logoutTime = new Date(record.logout_time);
-          const hoursWorked = (logoutTime - loginTime) / (1000 * 60 * 60);
-          
-          return hoursWorked < 9;
-        }).length;
-
-        return {
-          empId: empData.employee.employee_id,
-          name: empData.employee.name,
-          presentDays: empData.presentDays,
-          daysLessThan9Hours: daysLessThan9Hours
-        };
-      });
-
-      console.log("Summary sheet data count:", data.length);
-      console.log("Sample data:", data.slice(0, 3));
-
-      // Use allEmployeesForMapping for daily data sheet (already fetched)
-      
-      // Get all attendance records for the month (already have this above)
-      // Just reuse attendanceRecords but get all statuses
 
       // Get all LOP records for the month
       const { data: allLOP, error: lopError } = await supabase
@@ -135,14 +112,62 @@ const verifyToken=require("../middleware/admincheck")
         return res.status(500).json({ message: lopError.message });
       }
 
-      // Create daily data sheet
+      // Count LOP days per employee
+      allLOP.forEach(lop => {
+        if (employeeMap.has(lop.employee_id)) {
+          employeeMap.get(lop.employee_id).lopDays++;
+        }
+      });
+
+      // Calculate absent days (total days in month - present - LOP)
       const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+      
+      employeeMap.forEach(empData => {
+        empData.absentDays = daysInMonth - empData.presentDays - empData.lopDays;
+      });
+
+      // Calculate daysLessThan9Hours for each employee
+      const data = Array.from(employeeMap.values()).map(empData => {
+        const daysLessThan9Hours = empData.presentRecords.filter(record => {
+          if (!record.login_time || !record.logout_time) return false;
+          
+          const loginTime = new Date(record.login_time);
+          const logoutTime = new Date(record.logout_time);
+          const hoursWorked = (logoutTime - loginTime) / (1000 * 60 * 60);
+          
+          return hoursWorked < 9;
+        }).length;
+
+        return {
+          'Employee ID': empData.employee.employee_id,
+          'Name': empData.employee.name,
+          'Employee Type': empData.employee.employee_type || 'N/A',
+          'Present Days': empData.presentDays,
+          'Absent Days': empData.absentDays,
+          'LOP Days': empData.lopDays,
+          'Days <9hrs': daysLessThan9Hours
+        };
+      });
+
+      console.log("Query result count:", data.length);
+
+      // Get all employees for daily data sheet
+      const { data: allEmployees, error: empError } = await supabase
+        .from(EMPLOYEES_TABLE)
+        .select('*');
+
+      if (empError) {
+        return res.status(500).json({ message: empError.message });
+      }
+      
+      // Create daily data sheet
       const dailyData = [];
 
-      for (const employee of allEmployeesForMapping) {
+      for (const employee of allEmployees) {
         const row = {
           'Employee ID': employee.employee_id,
-          'Name': employee.name
+          'Name': employee.name,
+          'Employee Type': employee.employee_type || 'N/A'
         };
 
         // Initialize all days as "Absent"
@@ -151,7 +176,7 @@ const verifyToken=require("../middleware/admincheck")
         }
 
         // Mark Present days
-        attendanceRecords.forEach(att => {
+        allAttendanceForCalc.forEach(att => {
           if (att.employee_id === employee.id && att.status === 'Present') {
             const attDate = new Date(att.timestamp);
             const attDay = attDate.getUTCDate();
@@ -232,142 +257,104 @@ const verifyToken=require("../middleware/admincheck")
     }
   });
 
-  // Daily attendance sheet download endpoint
-  Router.post("/dailysheet", verifyToken, async (req, res) => {
+
+
+  Router.post("/dailyattandacetable", verifyToken, async (req, res) => {
     const { date } = req.body;
   
     try {
-      if(req.user.role !== "admin"){
-        return res.status(403).json({message:"Access Denied for downloading daily sheet"})
+      if (req.user.role !== "admin") {
+        return res.status(403).json({
+          message: "Access Denied for viewing daily sheet"
+        });
       }
-
+  
       if (!date) {
         return res.status(400).json({ message: "Please provide a date" });
       }
-
+  
       const selectedDate = new Date(date);
-      const startOfDay = new Date(Date.UTC(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate(), 0, 0, 0, 0));
-      const endOfDay = new Date(Date.UTC(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate(), 23, 59, 59, 999));
-
-      // Get all employees
+      const startOfDay = new Date(Date.UTC(
+        selectedDate.getUTCFullYear(),
+        selectedDate.getUTCMonth(),
+        selectedDate.getUTCDate(),
+        0, 0, 0, 0
+      ));
+  
+      const endOfDay = new Date(Date.UTC(
+        selectedDate.getUTCFullYear(),
+        selectedDate.getUTCMonth(),
+        selectedDate.getUTCDate(),
+        23, 59, 59, 999
+      ));
+  
+   
       const { data: allEmployees, error: empError } = await supabase
         .from(EMPLOYEES_TABLE)
         .select('*')
         .order('department', { ascending: true })
         .order('employee_id', { ascending: true });
-
+  
       if (empError) {
         return res.status(500).json({ message: empError.message });
       }
-      
-      // Get all attendance records for the day
-      const { data: allAttendance, error: allAttError } = await supabase
+  
+    
+      const { data: allAttendance, error: attError } = await supabase
         .from(ATTENDANCE_TABLE)
         .select('*')
         .gte('timestamp', startOfDay.toISOString())
         .lte('timestamp', endOfDay.toISOString());
-
-      if (allAttError) {
-        return res.status(500).json({ message: allAttError.message });
+  
+      if (attError) {
+        return res.status(500).json({ message: attError.message });
       }
-
-      // Get all LOP records for the day
-      const { data: allLOP, error: lopError } = await supabase
-        .from(LOP_TABLE)
-        .select('*')
-        .gte('marking_date', startOfDay.toISOString().split('T')[0])
-        .lte('marking_date', endOfDay.toISOString().split('T')[0]);
-
-      if (lopError) {
-        return res.status(500).json({ message: lopError.message });
-      }
-
-      // Create daily data grouped by department
+  
       const dailyData = [];
-
+  
       for (const employee of allEmployees) {
-        // Find attendance record for this employee
-        const attendance = allAttendance.find(att => {
-          const attEmpId = att.employee_id;
-          return attEmpId === employee.id;
-        });
-        
-        
-    
-
-        let status = 'Not Logged In';
-
-              if (attendance) {
-          if (attendance.status === 'Present') {
-            status = 'Logged In';
-          } else if (attendance.status === 'Absent') {
-            status = 'Absent';
+  
+        const attendance = allAttendance.find(
+          att => att.employee_id === employee.id
+        );
+  
+        let status = "Not Logged In";
+        let loginTime = null;
+        let logoutTime = null;
+  
+        if (attendance) {
+          if (attendance.status === "Present") {
+            status = "Logged In";
+            loginTime = attendance.login_time;
+            logoutTime = attendance.logout_time;
+          } else if (attendance.status === "Absent") {
+            status = "Absent";
+          } else if (attendance.status === "Work From Home") {
+            status = "Work From Home";
+            loginTime = attendance.login_time;
+            logoutTime = attendance.logout_time;
           }
         }
-
+  
         dailyData.push({
-          'Employee ID': employee.employee_id,
-          'Name': employee.name,
-          'Department': employee.department || 'N/A',
-          'Status': status,
+          employeeId: employee.employee_id,
+          name: employee.name,
+          department: employee.department || "N/A",
+          status: status,
+          loginTime: loginTime,
+          logoutTime: logoutTime
         });
       }
-
-      // Create worksheet
-      const worksheet = XLSX.utils.json_to_sheet(dailyData.length > 0 ? dailyData : []);
-
-      // Add color coding
-      if (dailyData.length > 0) {
-        const range = XLSX.utils.decode_range(worksheet['!ref']);
-        
-        // Color code Status column (column D, index 3)
-        for (let row = 1; row <= range.e.r; row++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: 3 }); // Status column
-          if (!worksheet[cellAddress]) continue;
-          
-          const cellValue = worksheet[cellAddress].v;
-          let fillColor = { rgb: "FFFFFF" }; // Default white
-          
-          if (cellValue === 'Logged In' || cellValue === 'Present') {
-            fillColor = { rgb: "90EE90" }; // Light green
-          } else if (cellValue === 'Absent' || cellValue === 'Not Logged In') {
-            fillColor = { rgb: "FFB6C1" }; // Light red
-          } else if (cellValue === 'LOP') {
-            fillColor = { rgb: "FFA500" }; // Orange
-          }
-          
-          if (!worksheet[cellAddress].s) {
-            worksheet[cellAddress].s = {};
-          }
-          if (!worksheet[cellAddress].s.fill) {
-            worksheet[cellAddress].s.fill = {};
-          }
-          worksheet[cellAddress].s.fill.fgColor = fillColor;
-        }
-      }
-
-      // Create workbook
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Attendance");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-      
-      const dateStr = selectedDate.toISOString().split('T')[0];
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename=daily_attendance_${dateStr}.xlsx`
-      );
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-
-      res.send(buffer);
+  
+      res.status(200).json({
+        date: selectedDate.toISOString().split('T')[0],
+        totalEmployees: dailyData.length,
+        data: dailyData
+      });
+  
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
   });
-  
-  
-  
+
   module.exports=Router;

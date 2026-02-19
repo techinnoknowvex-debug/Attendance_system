@@ -1,8 +1,8 @@
 const express=require('express');
 const Router=express.Router();
 const supabase = require("../config/supabase");
-const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels");
-
+const { EMPLOYEES_TABLE, ATTENDANCE_TABLE, OTP_Table} = require("../models/supabaseModels");
+const sendEmail =require("../config/email");
 
  Router.post("/markattandance", async (req, res) => {
   try {
@@ -24,7 +24,7 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // Find existing attendance record for today
+   
     const { data: existingAttendanceData, error: attError } = await supabase
       .from(ATTENDANCE_TABLE)
       .select('*')
@@ -37,52 +37,54 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
 
     let existingAttendance = existingAttendanceData || null;
 
-    const officeLat = parseFloat(employee.office_latitude);
-    const officeLng = parseFloat(employee.office_longitude);
+    let distance = null;
 
-   
-    const lat = Number(latitude);
-    const lng = Number(longitude);
+    if (status !== "Work From Home" && status!=="Absent") {
+      const officeLat = parseFloat(employee.office_latitude);
+      const officeLng = parseFloat(employee.office_longitude);
 
-    if (
-      isNaN(lat) || isNaN(lng) ||
-      lat < -90 || lat > 90 ||
-      lng < -180 || lng > 180
-    ) {
-      return res.status(400).json({
-        error: "Invalid latitude or longitude sent from client",
-        received: { latitude, longitude }
-      });
-    }
+      const lat = Number(latitude);
+      const lng = Number(longitude);
 
-    const R = 6371000; 
-    const toRad = (v) => (v * Math.PI) / 180;
+      if (
+        isNaN(lat) || isNaN(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+      ) {
+        return res.status(400).json({
+          error: "Invalid latitude or longitude sent from client",
+          received: { latitude, longitude }
+        });
+      }
 
-    const dLat = toRad(lat - officeLat);
-    const dLon = toRad(lng - officeLng);
+      const R = 6371000; 
+      const toRad = (v) => (v * Math.PI) / 180;
 
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(officeLat)) *
-        Math.cos(toRad(lat)) *
-        Math.sin(dLon / 2) ** 2;
+      const dLat = toRad(lat - officeLat);
+      const dLon = toRad(lng - officeLng);
 
-    const distance = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(officeLat)) *
+          Math.cos(toRad(lat)) *
+          Math.sin(dLon / 2) ** 2;
 
-    console.log({
-      officeLat,
-      officeLng,
-      userLat: lat,
-      userLng: lng,
-      distance_m: Math.round(distance),
-    });
+      distance = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-   
-    if (distance >= 350 && status=="Present") {
-      return res.status(403).json({
-        message: "You are not near the office location",
+      console.log({
+        officeLat,
+        officeLng,
+        userLat: lat,
+        userLng: lng,
         distance_m: Math.round(distance),
       });
+
+      if (distance >= 350 && status=="Present") {
+        return res.status(403).json({
+          message: "You are not near the office location",
+          distance_m: Math.round(distance),
+        });
+      }
     }
 
     const currentTime = timestamp ? new Date(timestamp) : new Date();
@@ -91,36 +93,45 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
     if (existingAttendance) {
       if(existingAttendance.status=="Absent"){
         return res.status(400).json({
-          message:"Already Absnet is marked for today"
+          message:"Already Absent is marked for today"
         })
       }
       
       if (authType === "logout" && !existingAttendance.login_time) {
-        return res.status(400).json({
-          message: "Cannot logout: No login time recorded for today. Please login first.",
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        });
+        const response = {
+          message: "Cannot logout: No login time recorded for today. Please login first."
+        };
+        if (distance !== null) {
+          response.distance_m = Math.round(distance);
+          response.distance_km = Number((distance / 1000).toFixed(2));
+        }
+        return res.status(400).json(response);
       }
 
       // Validation 2: Reject logout if already logged out today
       if (authType === "logout" && existingAttendance.logout_time) {
-        return res.status(400).json({
+        const response = {
           message: "Cannot logout: You have already logged out today.",
-          existingLogoutTime: existingAttendance.logout_time,
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        });
+          existingLogoutTime: existingAttendance.logout_time
+        };
+        if (distance !== null) {
+          response.distance_m = Math.round(distance);
+          response.distance_km = Number((distance / 1000).toFixed(2));
+        }
+        return res.status(400).json(response);
       }
 
       // Validation 3: Reject login if already logged out today (same day)
       if (authType === "login" && existingAttendance.logout_time) {
-        return res.status(400).json({
+        const response = {
           message: "Cannot login: You have already logged out today. Please wait for a new day.",
-          existingLogoutTime: existingAttendance.logout_time,
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        });
+          existingLogoutTime: existingAttendance.logout_time
+        };
+        if (distance !== null) {
+          response.distance_m = Math.round(distance);
+          response.distance_km = Number((distance / 1000).toFixed(2));
+        }
+        return res.status(400).json(response);
       }
 
       // Validation 4: Reject login if already logged in today (unless within 5 minutes - allow correction)
@@ -140,17 +151,23 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
             return res.status(500).json({ error: updateError.message });
           }
 
-          return res.status(200).json({
-            message: "Login time updated successfully (within correction window)",
-            distance_km: Number((distance / 1000).toFixed(2))
-          });
+          const response = {
+            message: "Login time updated successfully (within correction window)"
+          };
+          if (distance !== null) {
+            response.distance_km = Number((distance / 1000).toFixed(2));
+          }
+          return res.status(200).json(response);
         } else {
-          return res.status(400).json({
+          const response = {
             message:"Cannot login: You have already logged in today.",
-            existingLoginTime: existingAttendance.login_time,
-            distance_m: Math.round(distance),
-            distance_km: Number((distance / 1000).toFixed(2))
-          });
+            existingLoginTime: existingAttendance.login_time
+          };
+          if (distance !== null) {
+            response.distance_m = Math.round(distance);
+            response.distance_km = Number((distance / 1000).toFixed(2));
+          }
+          return res.status(400).json(response);
         }
       }
 
@@ -165,15 +182,19 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
           return res.status(500).json({ error: updateError.message });
         }
 
-        return res.status(200).json({
-          message: "Logout time recorded successfully",
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        });
+        const response = {
+          message: "Logout time recorded successfully"
+        };
+        if (distance !== null) {
+          response.distance_m = Math.round(distance);
+          response.distance_km = Number((distance / 1000).toFixed(2));
+        }
+        return res.status(200).json(response);
       }
-      if(status=="Absent"){
+
+      if(status=="Absent" || status=="Work From Home"){
         return res.status(200).json({
-          message:"Already Marked the absent for today"
+          message: status === "Work From Home" ? "Already marked Work From Home for today" : "Already Marked Absent for today"
         })
       }
     } else {
@@ -181,14 +202,17 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
       
       // Validation: Reject logout if no login exists (no record at all)
       if (authType === "logout") {
-        return res.status(400).json({
-          message: "Cannot logout: No login time recorded for today. Please login first.",
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        });
+        const response = {
+          message: "Cannot logout: No login time recorded for today. Please login first."
+        };
+        if (distance !== null) {
+          response.distance_m = Math.round(distance);
+          response.distance_km = Number((distance / 1000).toFixed(2));
+        }
+        return res.status(400).json(response);
       }
 
-      // Create new attendance record for login
+      // Create new attendance record for login with Present status
       if (authType === "login" && status==="Present") {
         const { error: insertError } = await supabase
           .from(ATTENDANCE_TABLE)
@@ -204,21 +228,39 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
           return res.status(500).json({ error: insertError.message });
         }
 
-        return res.status(201).json({
-          message: "Login time recorded successfully",
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        });
-      }else if(authType === "login" || authType==="logout" && status==="Absent"){
-        return res.status(201).json({
-          message: "Absent is marked for the day",
-          distance_m: Math.round(distance),
-          distance_km: Number((distance / 1000).toFixed(2))
-        }); 
+        const response = {
+          message: "Login time recorded successfully"
+        };
+        if (distance !== null) {
+          response.distance_m = Math.round(distance);
+          response.distance_km = Number((distance / 1000).toFixed(2));
+        }
+        return res.status(201).json(response);
       }
 
+      // Handle Work From Home status
+      if(status === "Work From Home") {
+        const { error: insertError } = await supabase
+        .from(ATTENDANCE_TABLE)
+        .insert({
+          employee_id: employee.id,
+          status: status,
+          timestamp: currentTime.toISOString(),
+          login_time: currentTime.toISOString(),
+          logout_time: null,
+        });
 
-      if(authType=="" || status=="Absent"){
+      if (insertError) {
+        return res.status(500).json({ error: insertError.message });
+      }
+
+      return res.status(201).json({
+        message:"Work From Home marked for the day"
+      });
+      }
+
+      // Handle Absent status
+      if(status=="Absent"){
         const { error: insertError } = await supabase
         .from(ATTENDANCE_TABLE)
         .insert({
@@ -234,9 +276,7 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
       }
 
       return res.status(201).json({
-        message:"Absent is marked for the day",
-        distance_m: Math.round(distance),
-        distance_km: Number((distance / 1000).toFixed(2))
+        message:"Absent is marked for the day"
       });
       }
     }
@@ -246,43 +286,118 @@ const { EMPLOYEES_TABLE, ATTENDANCE_TABLE } = require("../models/supabaseModels"
   }
 });
 
-Router.post("/verify-pin", async(req,res)=>{
+Router.post("/generateOTP", async (req, res) => {
+  const { employee_id } = req.body; 
+
+  if (!employee_id) {
+    return res.status(400).json({ error: "Employee ID is required" });
+  }
+
+  try {
   
-  const {pin, employeeId} = req.body;
-  try{
-    if(!pin || !employeeId){
-      return res.status(400).json({success: false, message:"PIN and Employee ID are required"});
-    }
-
-    const {data: employee, error: empError} = await supabase
+    const { data: employee, error: empError } = await supabase
       .from(EMPLOYEES_TABLE)
-      .select('pin')
-      .eq('employee_id', employeeId)
-      .maybeSingle();
+      .select("id,name,email")
+      .eq("employee_id", employee_id)
+      .single();
 
-    if(empError){
-      console.error("Error fetching employee:", empError);
-      return res.status(500).json({success: false, message:"Error fetching employee data"});
+    if (empError || !employee) {
+      return res.status(404).json({ error: "Employee not found" });
     }
 
-    if(!employee){
-      return res.status(404).json({success: false, message:"Employee not found"});
+    const { data: existingOTP } = await supabase
+      .from(OTP_Table)
+      .select("created_at")
+      .eq("employee_id",employee.id)
+      .single();
+
+    if (existingOTP) {
+      const createdTime = new Date(existingOTP.created_at);
+      const timeDiff = Date.now() - createdTime.getTime();
+
+      if (timeDiff < 60000) {
+        return res
+          .status(429)
+          .json({ error: "Please wait before requesting another OTP" });
+      }
+
+
+      await supabase
+        .from(OTP_Table)
+        .delete()
+        .eq("employee_id", employee.id);
     }
 
-    // Convert both to string for comparison to handle type mismatches
-    const storedPin = String(employee.pin);
-    const providedPin = String(pin);
+    const OTP = Math.floor(1000 + Math.random() * 9000).toString();
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
 
-    if(storedPin === providedPin){
-      return res.status(200).json({success: true, message:"Pin Verified Successfully"})
-    } else {
-      return res.status(401).json({success: false, message:"Invalid PIN"});
+    const { error: insertError } = await supabase
+      .from(OTP_Table)
+      .insert({
+        employee_id: employee.id, 
+        otp: OTP,
+        expires_at: expiresAt,
+        attempts: 0
+      });
+
+    if (insertError) {
+      return res.status(500).json({ error: insertError.message });
     }
 
-  }catch(error){
-     console.error("Verify PIN error:", error);
-     return res.status(500).json({success: false, error: error.message });
+
+const emailSent = await sendEmail(employee.email, OTP);
+
+if (!emailSent) {
+  return res.status(500).json({ error: "Failed to send email" });
+}
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+
+Router.post("/verify-otp",async(req,res)=>{
+  const {employee_id,otp}=req.body
+  try{
+    const {data:employee}=await supabase
+    .from(EMPLOYEES_TABLE)
+    .select('id')
+    .eq('employee_id',employee_id)
+    .single();
+
+    const {data:validotp,error:otpError}=await supabase
+    .from(OTP_Table)
+    .select('*')
+    .eq('employee_id',employee.id)
+    .eq("otp", otp)
+    .single();
+
+    if (otpError || !validotp) {
+      return res.status(400).json({ error: "Invalid OTP" });
+    }
+    const now = new Date();
+    const expiryTime = new Date(validotp.expires_at);
+
+    if (now > expiryTime) {
+      return res.status(400).json({ error: "OTP expired" });
+    }
+
+
+    await supabase
+      .from(OTP_Table)
+      .delete()
+      .eq("id", validotp.id);
+
+    return res.status(200).json({ message: "OTP Verified Successfully" });
+
+  }catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 })
 
-module.exports=Router;
+module.exports = Router;

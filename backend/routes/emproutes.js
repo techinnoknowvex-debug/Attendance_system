@@ -3,14 +3,15 @@ const express=require('express');
 const Router=express.Router();
 const supabase = require("../config/supabase");
 const { EMPLOYEES_TABLE } = require("../models/supabaseModels");
+
 const verifyToken=require('../middleware/admincheck');
 
-// Public endpoint to fetch employees for attendance form (no authentication required)
+
 Router.get("/employees-for-attendance", async (req, res) => {
   try {
     const { data: Empdata, error } = await supabase
       .from(EMPLOYEES_TABLE)
-      .select('employee_id, name, department');
+      .select('employee_id, name, department, employee_type');
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -22,15 +23,27 @@ Router.get("/employees-for-attendance", async (req, res) => {
   }
 });
 
+
  Router.post("/empregister",verifyToken,async (req,res)=>{
-  const {employeeId,name,department,pin}= req.body;
+  const {employeeId,name,department,email,employeeType}= req.body;
     try {
       if(req.user.role!=="admin"){
         return res.status(403).json({message:"Access Denied for adding the EMPLOYEE data"})
       }
 
-      if(!employeeId || !name || !department|| !pin){
-        return res.status(400).json({message:"Please provide employeeId, name, and department"})
+      if(!employeeId || !name || !department|| !email || !employeeType){
+        return res.status(400).json({message:"Please provide employeeId, name, department, email, and employee type"})
+      }
+
+ 
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({message:"Please provide a valid email address"})
+      }
+
+      const validEmployeeTypes = ['Full Time', 'Intern'];
+      if (!validEmployeeTypes.includes(employeeType)) {
+        return res.status(400).json({message:"Employee type must be 'Full Time' or 'Intern'"})
       }
 
       const { data: empidexists, error: checkError } = await supabase
@@ -56,7 +69,8 @@ Router.get("/employees-for-attendance", async (req, res) => {
           employee_id: employeeId,
           name: name,
           department: department,
-          pin:pin
+          email:email,
+          employee_type: employeeType
         });
 
       if (insertError) {
@@ -69,6 +83,7 @@ Router.get("/employees-for-attendance", async (req, res) => {
     }
  })
 
+
  Router.get("/allemp",verifyToken,async (req,res)=>{
     try {
       if(req.user.role!=="admin"){
@@ -77,7 +92,7 @@ Router.get("/employees-for-attendance", async (req, res) => {
 
       const { data: Empdata, error } = await supabase
         .from(EMPLOYEES_TABLE)
-        .select('id, employee_id, name, department');
+        .select('id, employee_id, name, department, employee_type');
 
       if (error) {
         return res.status(500).json({ error: error.message });
