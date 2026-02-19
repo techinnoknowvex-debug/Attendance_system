@@ -59,7 +59,6 @@ export default function Home() {
           lon: position.coords.longitude,
           accuracy: position.coords.accuracy,
         });
-        console.log("User Location - Lat:", position.coords.latitude, "Lon:", position.coords.longitude);
         setLocationLoading(false);
       },
       (error) => {
@@ -124,8 +123,6 @@ export default function Home() {
     try {
       setOtpLoading(true);
 
-      console.log("Generating OTP for Employee ID:", empid, "Status:", status);
-
       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,8 +130,6 @@ export default function Home() {
       });
 
       const data = await res.json();
-
-      console.log("OTP Generation Response:", data);
       
       if (res.ok) {
         showToast(data.message || "OTP sent to your email!", "success");
@@ -159,6 +154,41 @@ export default function Home() {
   };
 
 
+  const markAttendanceWithoutOTP = async () => {
+    try {
+      setLoading(true);
+
+      const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: empid,
+          status,
+          authType: authType,
+          latitude: location.lat,
+          longitude: location.lon,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      const markData = await markRes.json();
+      if (markRes.ok) {
+        showToast(markData.message || "Attendance marked successfully!", "success");
+        setEmpid("");
+        setDepartment("");
+        setStatus("");
+        setAuthType("");
+      } else {
+        showToast(markData.message || "Something went wrong. Please try again.", "error");
+      }
+    } catch (error) {
+      console.error("Marking error:", error);
+      showToast("Failed to mark attendance. Please try again.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const verifyAndMarkAttendance = async (e) => {
     e.preventDefault();
     try {
@@ -169,7 +199,6 @@ export default function Home() {
 
       setLoading(true);
 
-      console.log("Verifying OTP - Employee ID:", empid, "OTP:", otp, "Status:", status, "AuthType:", authType);
      
       const verifyRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/verify-otp", {
         method: "POST",
@@ -177,8 +206,6 @@ export default function Home() {
         body: JSON.stringify({ employee_id: empid, otp }),
       });
       const verifyData = await verifyRes.json();
-
-      console.log("OTP Verification Response:", verifyData);
 
       if (!verifyRes.ok) {
         showToast(verifyData.error || verifyData.message || "OTP verification failed. Please try again.", "error");
@@ -194,13 +221,12 @@ export default function Home() {
         body: JSON.stringify({
           employeeId: empid,
           status,
-          authType: status === "Present" ? authType.toLowerCase() : "",
-          latitude: status === "Present" && authType === "Login" ? location.lat : null,
-          longitude: status === "Present" && authType === "Login" ? location.lon : null,
+          authType: status === "Work From Home" ? "" : authType,
+          latitude: status === "Work From Home" ? null : location.lat,
+          longitude: status === "Work From Home" ? null : location.lon,
           timestamp: new Date().toISOString(),
         }),
       });
-      console.log("Sending Data - Status:", status, "AuthType:", status === "Present" ? authType.toLowerCase() : "", "Lat:", status === "Present" && authType === "Login" ? location.lat : null, "Lon:", status === "Present" && authType === "Login" ? location.lon : null);
 
       const markData = await markRes.json();
       if (markRes.ok) {
@@ -224,47 +250,19 @@ export default function Home() {
     }
   };
 
-
-  const markAttendanceWithoutOTP = async () => {
-  try {
-    setLoading(true);
-
-    const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        employeeId: empid,
-        status,
-        authType: status === "Present" ? authType.toLowerCase() : "",
-        latitude: status === "Present" && authType === "Logout" ? location.lat : null,
-        longitude: status === "Present" && authType === "Logout" ? location.lon : null,
-        timestamp: new Date().toISOString(),
-      }),
-    });
-    console.log("Sending Location (without OTP) - Lat:", status === "Present" && authType === "Logout" ? location.lat : null, "Lon:", status === "Present" && authType === "Logout" ? location.lon : null);
-
-    const markData = await markRes.json();
-
-    if (markRes.ok) {
-      showToast(markData.message || "Attendance marked successfully!", "success");
-      setEmpid("");
-      setDepartment("");
-      setStatus("");
-      setAuthType("");
-    } else {
-      showToast(markData.message || "Something went wrong.", "error");
-    }
-  } catch (error) {
-    showToast("Failed to mark attendance.", "error");
-  } finally {
-    setLoading(false);
-  }
-};
-
   
   const markattandance = async (e) => {
     e.preventDefault();
 
+    if (status !== "Work From Home" && (!location.lat || !location.lon)) {
+      showToast("Please wait for location to be detected", "error");
+      return;
+    }
+
+    if (status === "Present" && authType === "") {
+      showToast("Please select Login or Logout", "error");
+      return;
+    }
     if (!department) {
       showToast("Please select a department", "error");
       return;
@@ -278,23 +276,18 @@ export default function Home() {
       return;
     }
 
-    if (status === "Present" && authType === "") {
-      showToast("Please select Login or Logout", "error");
-      return;
-    }
-
-    // Location required for both Login and Logout
-    if (status === "Present" && (!location.lat || !location.lon)) {
-      showToast("Please wait for location to be detected", "error");
-      return;
-    }
+    // Conditional OTP logic:
+    // login(present) -> OTP required, within location only
+    // logout(present) -> NO OTP needed, within location only
+    // absent -> OTP required, no need within location
+    // work from home -> OTP required, no need within location
     
-    // OTP required for: Login, Absent, Work From Home (but NOT Logout)
-    if ((status === "Present" && authType === "Login") || status === "Absent" || status === "Work From Home") {
-      await generateOTP();
-    } else {
-      // Only Logout doesn't need OTP
+    if (status === "Present" && authType === "logout") {
+      // Logout: Skip OTP, mark directly with location
       await markAttendanceWithoutOTP();
+    } else {
+      // All other cases: OTP required (login, absent, work from home)
+      await generateOTP();
     }
   };
 

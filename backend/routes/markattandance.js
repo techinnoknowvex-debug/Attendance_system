@@ -97,6 +97,15 @@ const sendEmail =require("../config/email");
         })
       }
       
+      // Skip authType validation for non-Present statuses
+      if (status !== "Present") {
+        if(status=="Absent" || status=="Work From Home"){
+          return res.status(200).json({
+            message: status === "Work From Home" ? "Already marked Work From Home for today" : "Already Marked Absent for today"
+          })
+        }
+      }
+      
       if (authType === "logout" && !existingAttendance.login_time) {
         const response = {
           message: "Cannot logout: No login time recorded for today. Please login first."
@@ -199,8 +208,49 @@ const sendEmail =require("../config/email");
       }
     } else {
       // No existing attendance record for today
-      
-      // Validation: Reject logout if no login exists (no record at all)
+      // Skip authType validation for non-Present statuses
+      if (status !== "Present") {
+        if (status === "Work From Home") {
+          const { error: insertError } = await supabase
+          .from(ATTENDANCE_TABLE)
+          .insert({
+            employee_id: employee.id,
+            status: status,
+            timestamp: currentTime.toISOString(),
+            login_time: currentTime.toISOString(),
+            logout_time: null,
+          });
+
+        if (insertError) {
+          return res.status(500).json({ error: insertError.message });
+        }
+
+        return res.status(201).json({
+          message:"Work From Home marked for the day"
+        });
+        }
+
+        if(status=="Absent"){
+          const { error: insertError } = await supabase
+          .from(ATTENDANCE_TABLE)
+          .insert({
+            employee_id: employee.id,
+            status: status,
+            timestamp: currentTime.toISOString(),
+            login_time: null,
+            logout_time: null,
+          });
+
+        if (insertError) {
+          return res.status(500).json({ error: insertError.message });
+        }
+
+        return res.status(201).json({
+          message:"Absent is marked for the day"
+        });
+        }
+      }
+            // Validation: Reject logout if no login exists (no record at all)
       if (authType === "logout") {
         const response = {
           message: "Cannot logout: No login time recorded for today. Please login first."
@@ -238,47 +288,7 @@ const sendEmail =require("../config/email");
         return res.status(201).json(response);
       }
 
-      // Handle Work From Home status
-      if(status === "Work From Home") {
-        const { error: insertError } = await supabase
-        .from(ATTENDANCE_TABLE)
-        .insert({
-          employee_id: employee.id,
-          status: status,
-          timestamp: currentTime.toISOString(),
-          login_time: currentTime.toISOString(),
-          logout_time: null,
-        });
-
-      if (insertError) {
-        return res.status(500).json({ error: insertError.message });
-      }
-
-      return res.status(201).json({
-        message:"Work From Home marked for the day"
-      });
-      }
-
-      // Handle Absent status
-      if(status=="Absent"){
-        const { error: insertError } = await supabase
-        .from(ATTENDANCE_TABLE)
-        .insert({
-          employee_id: employee.id,
-          status: status,
-          timestamp: currentTime.toISOString(),
-          login_time: null,
-          logout_time: null,
-        });
-
-      if (insertError) {
-        return res.status(500).json({ error: insertError.message });
-      }
-
-      return res.status(201).json({
-        message:"Absent is marked for the day"
-      });
-      }
+      // Duplicate handling removed (moved to earlier in else block)
     }
 
   } catch (error) {
@@ -363,18 +373,12 @@ if (!emailSent) {
 
 Router.post("/verify-otp",async(req,res)=>{
   const {employee_id,otp}=req.body
-  console.log("Verifying OTP - Employee ID:", employee_id, "OTP:", otp);
   try{
-    const {data:employee, error: empError}=await supabase
+    const {data:employee}=await supabase
     .from(EMPLOYEES_TABLE)
     .select('id')
     .eq('employee_id',employee_id)
     .single();
-
-    if (empError || !employee) {
-      console.log("Employee not found:", employee_id);
-      return res.status(404).json({ error: "Employee not found" });
-    }
 
     const {data:validotp,error:otpError}=await supabase
     .from(OTP_Table)
@@ -382,8 +386,6 @@ Router.post("/verify-otp",async(req,res)=>{
     .eq('employee_id',employee.id)
     .eq("otp", otp)
     .single();
-
-    console.log("OTP lookup result:", validotp, "Error:", otpError);
 
     if (otpError || !validotp) {
       return res.status(400).json({ error: "Invalid OTP" });
@@ -404,7 +406,6 @@ Router.post("/verify-otp",async(req,res)=>{
     return res.status(200).json({ message: "OTP Verified Successfully" });
 
   }catch (error) {
-    console.log("Verify OTP error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 })
