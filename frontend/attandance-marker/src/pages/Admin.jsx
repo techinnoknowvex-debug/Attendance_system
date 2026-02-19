@@ -49,7 +49,7 @@ export default function Admin(){
      const webtoken=sessionStorage.getItem("webtoken");
      setAddLoading(true);
      try {
-       const res = await fetch("http://localhost:5000/emp/empregister", {
+       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/empregister", {
          method: "POST",
          headers: {
            "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export default function Admin(){
       setDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try{
-        const res=await fetch(`http://localhost:5000/emp/empdata`,{
+        const res=await fetch(`https://attendance-system-oe9j.onrender.com/emp/empdata`,{
           method:"POST",
           headers: {
             "Content-Type": "application/json",
@@ -146,7 +146,7 @@ export default function Admin(){
       setDailyDownloadLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("http://localhost:5000/emp/dailyattandacetable", {
+        const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/dailyattandacetable", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -190,7 +190,7 @@ export default function Admin(){
       setLopLoading(true);
       const webtoken = sessionStorage.getItem("webtoken");
       try {
-        const res = await fetch("http://localhost:5000/emp/marklop", {
+        const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/marklop", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

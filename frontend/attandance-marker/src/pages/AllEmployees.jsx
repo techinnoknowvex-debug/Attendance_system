@@ -25,7 +25,7 @@ export default function AllEmployees() {
         const webtoken = sessionStorage.getItem("webtoken");
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:5000/emp/allemp", {
+            const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/allemp", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -67,7 +67,7 @@ export default function AllEmployees() {
     const saveEmp = async (id, Empid) => {
         const webtoken = sessionStorage.getItem("webtoken");
         try {
-            const res = await fetch(`http://localhost:5000/emp/update/${id}`, {
+            const res = await fetch(`https://attendance-system-oe9j.onrender.com/emp/update/${id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -106,7 +106,7 @@ export default function AllEmployees() {
 
         const webtoken = sessionStorage.getItem("webtoken");
         try{
-        const res = await fetch(`http://localhost:5000/emp/delete/${id}`, {
+        const res = await fetch(`https://attendance-system-oe9j.onrender.com/emp/delete/${id}`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",

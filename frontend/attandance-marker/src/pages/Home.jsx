@@ -80,7 +80,7 @@ export default function Home() {
     const fetchEmployees = async () => {
       setEmployeesLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/emp/employees-for-attendance", {
+        const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/employees-for-attendance", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -123,7 +123,7 @@ export default function Home() {
     try {
       setOtpLoading(true);
 
-      const res = await fetch("http://localhost:5000/emp/generateOTP", {
+      const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: empid }),
@@ -165,7 +165,7 @@ export default function Home() {
       setLoading(true);
 
      
-      const verifyRes = await fetch("http://localhost:5000/emp/verify-otp", {
+      const verifyRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: empid, otp }),
@@ -180,7 +180,7 @@ export default function Home() {
       }
 
       
-      const markRes = await fetch("http://localhost:5000/emp/markattandance", {
+      const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -256,7 +256,7 @@ export default function Home() {
 
     setAdminLoading(true);
       try {
-      const res = await fetch("http://localhost:5000/emp/admin", {
+      const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/admin", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json" 
