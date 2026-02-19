@@ -186,9 +186,9 @@ export default function Home() {
         body: JSON.stringify({
           employeeId: empid,
           status,
-          authType: status === "Work From Home" ? "" : authType,
-          latitude: status === "Work From Home" ? null : location.lat,
-          longitude: status === "Work From Home" ? null : location.lon,
+          authType: authType,
+          latitude: status === "Present" && authType === "Login" ? location.lat : null,
+          longitude: status === "Present" && authType === "Login" ? location.lon : null,
           timestamp: new Date().toISOString(),
         }),
       });
@@ -215,7 +215,7 @@ export default function Home() {
     }
   };
 
-  
+
   const markAttendanceWithoutOTP = async () => {
   try {
     setLoading(true);
@@ -226,9 +226,9 @@ export default function Home() {
       body: JSON.stringify({
         employeeId: empid,
         status,
-        authType: status === "Work From Home" ? "" : authType,
-        latitude: status === "Work From Home" ? null : location.lat,
-        longitude: status === "Work From Home" ? null : location.lon,
+        authType: status === "Present" ? authType : "",
+        latitude: status === "Present" && authType === "Logout" ? location.lat : null,
+        longitude: status === "Present" && authType === "Logout" ? location.lon : null,
         timestamp: new Date().toISOString(),
       }),
     });
@@ -255,15 +255,6 @@ export default function Home() {
   const markattandance = async (e) => {
     e.preventDefault();
 
-    if (status !== "Work From Home" && (!location.lat || !location.lon)) {
-      showToast("Please wait for location to be detected", "error");
-      return;
-    }
-
-    if (status === "Present" && authType === "") {
-      showToast("Please select Login or Logout", "error");
-      return;
-    }
     if (!department) {
       showToast("Please select a department", "error");
       return;
@@ -277,12 +268,24 @@ export default function Home() {
       return;
     }
 
+    if (status === "Present" && authType === "") {
+      showToast("Please select Login or Logout", "error");
+      return;
+    }
+
+    // Location required for both Login and Logout
+    if (status === "Present" && (!location.lat || !location.lon)) {
+      showToast("Please wait for location to be detected", "error");
+      return;
+    }
     
-    if (status === "Present" && authType === "Login") {
-  await generateOTP();
-} else {
-  await markAttendanceWithoutOTP();
-}
+    // OTP required for: Login, Absent, Work From Home (but NOT Logout)
+    if ((status === "Present" && authType === "Login") || status === "Absent" || status === "Work From Home") {
+      await generateOTP();
+    } else {
+      // Only Logout doesn't need OTP
+      await markAttendanceWithoutOTP();
+    }
   };
 
  
