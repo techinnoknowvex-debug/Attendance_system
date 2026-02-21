@@ -253,8 +253,7 @@ const sendEmail =require("../config/email");
         }
       }
       
-      // Present status with login/logout handling
-      // Validation: Reject logout if no login exists (no record at all)
+   
       if (authType === "logout") {
         const response = {
           message: "Cannot logout: No login time recorded for today. Please login first."
@@ -266,7 +265,7 @@ const sendEmail =require("../config/email");
         return res.status(400).json(response);
       }
 
-      // Create new attendance record for login with Present status
+
       if (authType === "login" && status==="Present") {
         const { error: insertError } = await supabase
           .from(ATTENDANCE_TABLE)
@@ -292,7 +291,7 @@ const sendEmail =require("../config/email");
         return res.status(201).json(response);
       }
 
-      // Duplicate handling removed (moved to earlier in else block)
+   
     }
 
   } catch (error) {

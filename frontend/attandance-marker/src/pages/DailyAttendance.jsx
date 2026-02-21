@@ -7,26 +7,124 @@ import logo from "../assets/logo.png";
 export default function DailyAttendance() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { dailyData, selectedDate } = location.state || {};
+  const { dailyData: initialDailyData, selectedDate: initialSelectedDate } = location.state || {};
+  const [dailyData, setDailyData] = useState(initialDailyData);
+  const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [selectedDepartment, setSelectedDepartment] = useState("All");
+  const [refreshDate, setRefreshDate] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
   };
 
+  const handleRefresh = async (dateToFetch = refreshDate) => {
+    const dateParam = dateToFetch || selectedDate;
+    if (!dateParam) {
+      showToast("Please select a date", "error");
+      return;
+    }
+
+    setIsRefreshing(true);
+    const webtoken = sessionStorage.getItem("webtoken");
+    try {
+      const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/dailyattandacetable", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${webtoken}`
+        },
+        body: JSON.stringify({
+          date: dateParam
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch daily sheet");
+      }
+
+      const data = await res.json();
+      setDailyData(data);
+      setSelectedDate(dateParam);
+      showToast("Daily attendance sheet refreshed!", "success");
+    } catch (err) {
+      showToast("Failed to load daily sheet. Please try again.", "error");
+      console.log("Error", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (!dailyData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-100 via-cream-200 to-cream-300">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-100 via-cream-200 to-cream-300 relative overflow-hidden pt-20 pb-8 px-4">
         <BackgroundAnimation />
+
+        {/* Toast Notification */}
+        {toast.show && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast({ ...toast, show: false })}
+          />
+        )}
+
+        {/* Logo */}
+        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-3">
+          <img src={logo} alt="Logo" className="h-12 w-12 object-contain" />
+          <h1 className="text-2xl font-bold text-[#FF9500]">INNOKNOWVEX</h1>
+        </div>
+
+        {/* Back Button */}
+        <button
+          onClick={() => navigate("/admin")}
+          className="absolute top-5 left-5 z-10 bg-cream-100/80 hover:bg-cream-200 text-black px-3 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm sm:px-4 sm:text-base"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Admin
+        </button>
+
         <div className="relative z-10 text-center">
-          <h1 className="text-3xl font-bold text-[#FF9500] mb-4">No Data Available</h1>
-          <button
-            onClick={() => navigate("/admin")}
-            className="bg-[#FF9500] hover:bg-[#FF8500] text-white px-6 py-3 rounded-xl font-semibold transition-all"
-          >
-            Back to Admin
-          </button>
+          <h1 className="text-3xl font-bold text-[#FF9500] mb-6">No Data Available</h1>
+          <p className="text-gray-600 mb-8">Session data was lost. Please select a date to refresh the daily attendance sheet.</p>
+          
+          <div className="glass-effect p-8 rounded-3xl shadow-2xl backdrop-blur-lg border border-cream-300/20 max-w-md mx-auto">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-black mb-3">Select Date</label>
+              <input
+                type="date"
+                value={refreshDate}
+                onChange={(e) => setRefreshDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all"
+              />
+            </div>
+            
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="w-full bg-[#FF9500] hover:bg-[#FF8500] disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              {isRefreshing ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh Data
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -95,6 +193,29 @@ export default function DailyAttendance() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
         Back to Admin
+      </button>
+
+      
+      <button
+        onClick={() => handleRefresh(selectedDate)}
+        disabled={isRefreshing}
+        className="absolute top-5 right-5 z-10 bg-[#FF9500] hover:bg-[#FF8500] disabled:bg-gray-400 text-white px-3 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 text-sm sm:px-4 sm:text-base"
+      >
+        {isRefreshing ? (
+          <>
+            <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </>
+        )}
       </button>
 
       

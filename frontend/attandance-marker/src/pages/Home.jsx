@@ -276,17 +276,11 @@ export default function Home() {
       return;
     }
 
-    // Conditional OTP logic:
-    // login(present) -> OTP required, within location only
-    // logout(present) -> NO OTP needed, within location only
-    // absent -> OTP required, no need within location
-    // work from home -> OTP required, no need within location
+ 
     
     if (status === "Present" && authType === "logout") {
-      // Logout: Skip OTP, mark directly with location
       await markAttendanceWithoutOTP();
     } else {
-      // All other cases: OTP required (login, absent, work from home)
       await generateOTP();
     }
   };
