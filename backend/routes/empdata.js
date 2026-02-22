@@ -119,17 +119,19 @@ const verifyToken=require("../middleware/admincheck")
         }
       });
 
-      // Calculate absent days (total days in month - present - LOP)
       const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+      // Calculate total working days (excluding Sundays)
       let totalWorkingDays = 0;
       for (let day = 1; day <= daysInMonth; day++) {
-        const currentDate = new Date(Date.UTC(yearNum, monthNum - 1, day))
+        const currentDate = new Date(Date.UTC(yearNum, monthNum - 1, day));
         const dayOfWeek = currentDate.getUTCDay();
-        if (dayOfWeek !== 0) { // not Sunday
-         totalWorkingDays++;
+        if (dayOfWeek !== 0) {
+           totalWorkingDays++;
+          }
         }
-      }
-      empData.absentDays = totalWorkingDays - empData.presentDays - empData.lopDays;
+        employeeMap.forEach(empData => {
+          empData.absentDays =totalWorkingDays - empData.presentDays - empData.lopDays;
+        });
 
       // Calculate daysLessThan9Hours for each employee
       const data = Array.from(employeeMap.values()).map(empData => {
