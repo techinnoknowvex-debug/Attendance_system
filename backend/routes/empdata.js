@@ -120,6 +120,7 @@ const verifyToken=require("../middleware/admincheck")
       });
 
       // Calculate absent days (total days in month - present - LOP)
+      const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
       let totalWorkingDays = 0;
       for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(Date.UTC(yearNum, monthNum - 1, day))
