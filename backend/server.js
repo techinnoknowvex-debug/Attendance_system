@@ -13,7 +13,14 @@ app.use(express.json());
 
 const admin=require("./routes/admin");
 const markattandance=require("./routes/markattandance");
-const empdata=require("./routes/empdata");
+let empdata;
+try {
+  empdata = require("./routes/empdata");
+} catch (err) {
+  console.error("Failed to load ./routes/empdata:", err);
+  const express = require("express");
+  empdata = express.Router();
+}
 const emproutes=require("./routes/emproutes")
 const lop=require("./routes/lop")
 
