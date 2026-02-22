@@ -120,11 +120,15 @@ const verifyToken=require("../middleware/admincheck")
       });
 
       // Calculate absent days (total days in month - present - LOP)
-      const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
-      
-      employeeMap.forEach(empData => {
-        empData.absentDays = daysInMonth - empData.presentDays - empData.lopDays;
-      });
+      let totalWorkingDays = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const currentDate = new Date(Date.UTC(yearNum, monthNum - 1, day))
+        const dayOfWeek = currentDate.getUTCDay();
+        if (dayOfWeek !== 0) { // not Sunday
+         totalWorkingDays++;
+        }
+      }
+      empData.absentDays = totalWorkingDays - empData.presentDays - empData.lopDays;
 
       // Calculate daysLessThan9Hours for each employee
       const data = Array.from(employeeMap.values()).map(empData => {
@@ -172,7 +176,13 @@ const verifyToken=require("../middleware/admincheck")
 
         // Initialize all days as "Absent"
         for (let day = 1; day <= daysInMonth; day++) {
-          row[`Day ${day}`] = 'Absent';
+          const currentDate = new Date(Date.UTC(yearNum, monthNum - 1, day));
+          const dayOfWeek = currentDate.getUTCDay(); // 0 = Sunday
+          if (dayOfWeek === 0) {
+            row[`Day ${day}`] = 'Holiday';
+          } else {
+            row[`Day ${day}`] = 'Absent';
+          }
         }
 
         // Mark Present days
