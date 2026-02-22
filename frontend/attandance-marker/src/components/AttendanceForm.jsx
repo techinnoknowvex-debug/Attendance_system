@@ -15,7 +15,7 @@ export default function AttendanceForm({
   location,
   locationLoading,
   loading,
-  otploading,
+  otpLoading,
   onSubmit
 }) {
  
@@ -196,7 +196,7 @@ export default function AttendanceForm({
             disabled={loading || (status !== "Work From Home" && (locationLoading || !location.lat))}
             className="w-full bg-[#FF9500] hover:bg-[#FF8500] text-white py-3 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
           >
-            {loading || otploading ? (
+            {loading || otpLoading ? (
               <>
                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
