@@ -204,38 +204,6 @@ const verifyToken=require("../middleware/admincheck")
       const summaryWorksheet = XLSX.utils.json_to_sheet(data.length > 0 ? data : []);
       const dailyWorksheet = XLSX.utils.json_to_sheet(dailyData.length > 0 ? dailyData : []);
 
-      // Add color coding to daily worksheet
-      if (dailyData.length > 0) {
-        const range = XLSX.utils.decode_range(dailyWorksheet['!ref']);
-        
-        // Color code cells based on status
-        for (let row = 1; row <= range.e.r; row++) {
-          for (let col = 2; col <= range.e.c; col++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-            if (!dailyWorksheet[cellAddress]) continue;
-            
-            const cellValue = dailyWorksheet[cellAddress].v;
-            let fillColor = { rgb: "FFFFFF" }; // Default white
-            
-            if (cellValue === 'Present') {
-              fillColor = { rgb: "90EE90" }; // Light green
-            } else if (cellValue === 'Absent') {
-              fillColor = { rgb: "FFB6C1" }; // Light red
-            } else if (cellValue === 'LOP') {
-              fillColor = { rgb: "FFA500" }; // Orange
-            }
-            
-            if (!dailyWorksheet[cellAddress].s) {
-              dailyWorksheet[cellAddress].s = {};
-            }
-            if (!dailyWorksheet[cellAddress].s.fill) {
-              dailyWorksheet[cellAddress].s.fill = {};
-            }
-            dailyWorksheet[cellAddress].s.fill.fgColor = fillColor;
-          }
-        }
-      }
-
       // Create workbook with both sheets
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Summary");

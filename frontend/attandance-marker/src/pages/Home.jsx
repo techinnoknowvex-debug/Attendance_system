@@ -121,7 +121,7 @@ export default function Home() {
 
   const generateOTP = async () => {
     try {
-      setOtpLoading(true);
+     
 
       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
@@ -281,6 +281,7 @@ export default function Home() {
     if (status === "Present" && authType === "logout") {
       await markAttendanceWithoutOTP();
     } else {
+       setOtpLoading(true);
       await generateOTP();
     }
   };
@@ -365,6 +366,7 @@ export default function Home() {
         location={location}
         locationLoading={locationLoading}
         loading={loading}
+        otpLoading={otpLoading}
         onSubmit={markattandance}
       />
 

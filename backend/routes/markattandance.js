@@ -96,8 +96,7 @@ const sendEmail =require("../config/email");
           message:"Already Absent is marked for today"
         })
       }
-      
-      // Skip authType validation for non-Present statuses (handle first)
+   
       if (status !== "Present") {
         if(status=="Absent" || status=="Work From Home"){
           return res.status(200).json({
