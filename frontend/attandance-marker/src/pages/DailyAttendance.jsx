@@ -76,6 +76,18 @@ export default function DailyAttendance() {
           (emp) => emp.department === selectedDepartment
         );
 
+  // Calculate statistics
+  const totalEmployees = filteredData.length;
+  const presentCount = filteredData.filter(
+    (emp) => emp.status?.toLowerCase() === "logged in"
+  ).length;
+  const absentCount = filteredData.filter(
+    (emp) => emp.status?.toLowerCase() === "absent"
+  ).length;
+  const workFromHomeCount = filteredData.filter(
+    (emp) => emp.status?.toLowerCase() === "work from home"
+  ).length;
+
   const handlePrint = () => {
     window.print();
     showToast("Printing page...", "success");
@@ -163,15 +175,30 @@ export default function DailyAttendance() {
 
       <div className="relative z-10 w-full max-w-6xl mx-auto mt-10">
         <div className="glass-effect p-6 rounded-3xl shadow-2xl backdrop-blur-lg border border-cream-300/20 mb-6">
-          <h2 className="text-3xl font-bold text-[#FF9500] mb-2">
+          <h2 className="text-3xl font-bold text-[#FF9500] mb-4">
             Daily Attendance Sheet
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             Date:{" "}
             <span className="font-semibold">
               {new Date(selectedDate).toLocaleDateString()}
             </span>
           </p>
+          {/* Department Filter */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-gray-700">Filter by Department:</label>
+            <select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#FF9500]"
+            >
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Table */}
@@ -237,6 +264,31 @@ export default function DailyAttendance() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Summary Section */}
+        <div className="glass-effect rounded-3xl shadow-2xl backdrop-blur-lg border border-cream-300/20 p-6 mt-6">
+          <h3 className="text-xl font-bold text-[#FF9500] mb-4">
+            Summary - {selectedDepartment === "All" ? "All Departments" : selectedDepartment}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <p className="text-sm text-gray-600 font-semibold">Total Employees</p>
+              <p className="text-2xl font-bold text-blue-600">{totalEmployees}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <p className="text-sm text-gray-600 font-semibold">Present</p>
+              <p className="text-2xl font-bold text-green-600">{presentCount}</p>
+            </div>
+            <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <p className="text-sm text-gray-600 font-semibold">Absent</p>
+              <p className="text-2xl font-bold text-red-600">{absentCount}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-400">
+              <p className="text-sm text-gray-600 font-semibold">Work From Home</p>
+              <p className="text-2xl font-bold text-blue-400">{workFromHomeCount}</p>
+            </div>
           </div>
         </div>
       </div>
