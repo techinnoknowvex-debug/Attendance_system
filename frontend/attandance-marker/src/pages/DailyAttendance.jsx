@@ -185,7 +185,7 @@ export default function DailyAttendance() {
             </span>
           </p>
           {/* Department Filter */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
             <label className="text-sm font-semibold text-gray-700">Filter by Department:</label>
             <select
               value={selectedDepartment}
@@ -198,6 +198,22 @@ export default function DailyAttendance() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleDownload}
+              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-all shadow-md"
+            >
+              📥 Download CSV
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all shadow-md"
+            >
+              🖨️ Print
+            </button>
           </div>
         </div>
 
