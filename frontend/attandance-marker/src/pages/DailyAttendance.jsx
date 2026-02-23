@@ -206,7 +206,19 @@ export default function DailyAttendance() {
                     <td className="px-6 py-4">{emp.employeeId}</td>
                     <td className="px-6 py-4">{emp.name}</td>
                     <td className="px-6 py-4">{emp.department}</td>
-                    <td className="px-6 py-4">{emp.status}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full font-medium inline-block ${
+                        emp.status?.toLowerCase() === "logged in"
+                          ? "bg-green-100 text-green-800"
+                          : emp.status?.toLowerCase() === "absent"
+                          ? "bg-red-100 text-red-800"
+                          : emp.status?.toLowerCase() === "work from home"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}>
+                        {emp.status}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       {emp.loginTime
                         ? new Date(emp.loginTime).toLocaleTimeString("en-IN", {
