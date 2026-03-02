@@ -294,7 +294,7 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
           showToast(markData.message || "Something went wrong. Please try again.", "error");
           setOtp("");
         }
-      } else if (otpType === "leave") {
+      } else if (otpTypeRef.current === "Leave") {
         // after leave OTP is verified the backend already marked the leave as verified
         showToast("Leave verified and submitted!", "success");
         // reset leave form

@@ -327,14 +327,19 @@ Router.post("/generateOTP", async (req, res) => {
       return res.status(404).json({ error: "Employee not found" });
     }
 
-    const { data: existingOTP } = await supabase
+    let existingQuery = supabase
       .from(OTP_Table)
       .select("created_at")
       .eq("employee_id", employee.id)
-      // case‑insensitive check in case older rows used different casing
-      .ilike("otp_type", otpType)
-      .is("reference_id", refid === null || refid === undefined ? null : refid)
-      .single();
+      .ilike("otp_type", otpType);
+    
+    if (refid === null || refid === undefined) {
+      existingQuery = existingQuery.is("reference_id", null);
+    } else {
+      existingQuery = existingQuery.eq("reference_id", refid);
+    }
+    
+    const { data: existingOTP } = await existingQuery.single();
 
     if (existingOTP) {
       const createdTime = new Date(existingOTP.created_at);
@@ -347,12 +352,19 @@ Router.post("/generateOTP", async (req, res) => {
       }
 
 
-      await supabase
+      let deleteQuery = supabase
         .from(OTP_Table)
         .delete()
         .eq("employee_id", employee.id)
-        .ilike("otp_type", otpType)
-        .is("reference_id", refid === null || refid === undefined ? null : refid);
+        .ilike("otp_type", otpType);
+      
+      if (refid === null || refid === undefined) {
+        deleteQuery = deleteQuery.is("reference_id", null);
+      } else {
+        deleteQuery = deleteQuery.eq("reference_id", refid);
+      }
+      
+      await deleteQuery;
     }
 
     const OTP = Math.floor(1000 + Math.random() * 9000).toString();
@@ -443,20 +455,26 @@ Router.post("/verify-otp", async (req, res) => {
       return res.status(404).json({ error: "Employee not found" });
     }
 
-    const { data: validOTP, error: otpError } = await supabase
+    let verifyQuery = supabase
       .from(OTP_Table)
       .select("*")
       .eq("employee_id", employee.id)
       .eq("otp", otpValue)
-      .ilike("otp_type", otpType)
-      .is("reference_id", refid === null || refid === undefined ? null : refid)
-      .single();
+      .ilike("otp_type", otpType);
+    
+    if (refid === null || refid === undefined) {
+      verifyQuery = verifyQuery.is("reference_id", null);
+    } else {
+      verifyQuery = verifyQuery.eq("reference_id", refid);
+    }
+    
+    const { data: validOTP, error: otpError } = await verifyQuery.single();
 
     if (otpError || !validOTP) {
       // log ALL details for debugging
       console.log("\n=== OTP VERIFICATION FAILED ===");
       console.log("Request body:", { employee_id, otp, type, refid });
-      console.log("Parsed values:", { otpValue, otpType, normRefid: refid || null });
+      console.log("Parsed values:", { otpValue, otpType, refidValue: refid });
       console.log("Employee found:", { id: employee.id, employee_id: employee.employee_id });
       console.log("Query error:", otpError?.message || "No error returned");
       console.log("Query result:", validOTP);
