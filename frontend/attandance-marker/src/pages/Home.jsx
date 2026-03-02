@@ -150,11 +150,15 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
       return t;
     };
     type = normalizeType(type);
+    console.log("\n=== GENERATING OTP ===");
+    console.log("Type after normalization:", type);
     try {
+      const generatePayload = { employee_id, type, refid };
+      console.log("Generate OTP Payload:", generatePayload);
       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id, type, refid }),
+        body: JSON.stringify(generatePayload),
       });
 
       const data = await res.json();
@@ -237,17 +241,22 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
       }
 
       setLoading(true);
+      const verifyPayload = {
+        employee_id: otpTypeRef.current === "Attendance" ? empid : leaveEmpid,
+        otp: trimmed,
+        type: otpTypeRef.current,
+        refid: otpTypeRef.current === "Attendance" ? null : leaveIdForOtp,
+      };
+      console.log("\n=== SENDING VERIFY OTP ===");
+      console.log("Payload:", verifyPayload);
+      console.log("otpTypeRef.current:", otpTypeRef.current);
+      console.log("=== END ===");
 
       // first verify OTP for whichever flow we are in
       const verifyRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employee_id: otpTypeRef.current === "Attendance" ? empid : leaveEmpid,
-          otp: trimmed,
-          type: otpTypeRef.current,
-          refid: otpTypeRef.current === "Attendance" ? null : leaveIdForOtp,
-        }),
+        body: JSON.stringify(verifyPayload),
       });
       const verifyData = await verifyRes.json();
 

@@ -333,7 +333,7 @@ Router.post("/generateOTP", async (req, res) => {
       .eq("employee_id", employee.id)
       // case‑insensitive check in case older rows used different casing
       .ilike("otp_type", otpType)
-      .eq("reference_id", refid || null)
+      .is("reference_id", refid === null || refid === undefined ? null : refid)
       .single();
 
     if (existingOTP) {
@@ -352,7 +352,7 @@ Router.post("/generateOTP", async (req, res) => {
         .delete()
         .eq("employee_id", employee.id)
         .ilike("otp_type", otpType)
-        .eq("reference_id", refid || null);
+        .is("reference_id", refid === null || refid === undefined ? null : refid);
     }
 
     const OTP = Math.floor(1000 + Math.random() * 9000).toString();
@@ -370,8 +370,16 @@ Router.post("/generateOTP", async (req, res) => {
       });
 
     if (insertError) {
+      console.log("OTP Insert Error:", insertError.message);
       return res.status(500).json({ error: insertError.message });
     }
+    console.log("OTP Generated and Saved:", {
+      employee_id: employee.employee_id,
+      otp: OTP,
+      otp_type: otpType,
+      expires_at: expiresAt,
+      reference_id: refid || null
+    });
 let emailSent = "";
 
 // use normalized type for subject and body
@@ -441,19 +449,18 @@ Router.post("/verify-otp", async (req, res) => {
       .eq("employee_id", employee.id)
       .eq("otp", otpValue)
       .ilike("otp_type", otpType)
-      .eq("reference_id", refid || null)
+      .is("reference_id", refid === null || refid === undefined ? null : refid)
       .single();
 
     if (otpError || !validOTP) {
-      // log details for debugging
-      console.log("OTP verification failed", {
-        employee: employee.employee_id,
-        providedOtp: otpValue,
-        otpType,
-        refid,
-        otpError,
-        validOTP,
-      });
+      // log ALL details for debugging
+      console.log("\n=== OTP VERIFICATION FAILED ===");
+      console.log("Request body:", { employee_id, otp, type, refid });
+      console.log("Parsed values:", { otpValue, otpType, normRefid: refid || null });
+      console.log("Employee found:", { id: employee.id, employee_id: employee.employee_id });
+      console.log("Query error:", otpError?.message || "No error returned");
+      console.log("Query result:", validOTP);
+      console.log("=== END ===");
       return res.status(400).json({ error: "Invalid OTP" });
     }
 
