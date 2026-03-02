@@ -16,7 +16,8 @@ export default function AttendanceForm({
   locationLoading,
   loading,
   otpLoading,
-  onSubmit
+  onSubmit,
+  formDisabled = false
 }) {
  
   const departments = [...new Set(employees.map(emp => emp.department).filter(Boolean))].sort();
@@ -61,7 +62,7 @@ export default function AttendanceForm({
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all appearance-none bg-cream-100"
-                disabled={employeesLoading}
+                disabled={employeesLoading || formDisabled}
               >
                 <option value="">Select Department</option>
                 {departments.map((dept) => (
@@ -90,7 +91,7 @@ export default function AttendanceForm({
                 value={empid}
                 onChange={(e) => setEmpid(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all appearance-none bg-cream-100"
-                disabled={!department || employeesLoading}
+                disabled={!department || employeesLoading || formDisabled}
               >
                 <option value="">Select Employee</option>
                 {filteredEmployees.map((emp) => (
@@ -124,6 +125,7 @@ export default function AttendanceForm({
                   }
                 }}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] focus:border-transparent transition-all appearance-none bg-cream-100"
+                disabled={formDisabled}
               >
                 <option value="">Select Status</option>
                 <option value="Present">Present</option>
@@ -154,6 +156,7 @@ export default function AttendanceForm({
                     checked={authType === "login"}
                     onChange={(e) => setAuthType(e.target.value)}
                     className="sr-only"
+                    disabled={formDisabled}
                   />
                   <div className="flex flex-col items-center gap-2">
                     <svg className={`w-6 h-6 ${authType === "login" ? "text-[#FF9500]" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,6 +178,7 @@ export default function AttendanceForm({
                     checked={authType === "logout"}
                     onChange={(e) => setAuthType(e.target.value)}
                     className="sr-only"
+                    disabled={formDisabled}
                   />
                   <div className="flex flex-col items-center gap-2">
                     <svg className={`w-6 h-6 ${authType === "logout" ? "text-[#FF9500]" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +197,7 @@ export default function AttendanceForm({
 
           <button
             type="submit"
-            disabled={loading || (status !== "Work From Home" && (locationLoading || !location.lat))}
+            disabled={loading || (status !== "Work From Home" && (locationLoading || !location.lat)) || formDisabled}
             className="w-full bg-[#FF9500] hover:bg-[#FF8500] text-white py-3 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
           >
             {loading || otpLoading ? (

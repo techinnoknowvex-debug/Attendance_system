@@ -147,7 +147,8 @@ const generateOTP = async ({ employee_id = empid, type = "attendance", refid = n
         showToast(data.message || "OTP sent to your email!", "success");
         setShowOtpModal(true);
         setOtp("");
-        setOtpTimer(60);
+        // 3 minutes = 180 seconds (backend expiry)
+        setOtpTimer(180);
         setCanResendOtp(false);
         if (type === "Leave") {
           // once OTP sent hide the form to avoid duplicate submissions
@@ -169,7 +170,7 @@ const generateOTP = async ({ employee_id = empid, type = "attendance", refid = n
     if (otpType === "attendance") {
       await generateOTP({ employee_id: empid, type: "attendance", refid: null });
     } else if (otpType === "leave") {
-      await generateOTP({ employee_id: leaveEmpid, type: "Leave", refid: leaveIdForOtp });
+      await generateOTP({ employee_id: leaveEmpid, type: "leave", refid: leaveIdForOtp });
     } else {
       await generateOTP();
     }
@@ -214,7 +215,8 @@ const generateOTP = async ({ employee_id = empid, type = "attendance", refid = n
   const verifyAndMarkAttendance = async (e) => {
     e.preventDefault();
     try {
-      if (!otp.trim()) {
+      const trimmed = otp.trim();
+      if (!trimmed) {
         showToast("Please enter the OTP", "error");
         return;
       }
@@ -227,8 +229,8 @@ const generateOTP = async ({ employee_id = empid, type = "attendance", refid = n
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employee_id: otpType === "attendance" ? empid : leaveEmpid,
-          otp,
-          type: otpType === "attendance" ? "attendance" : "Leave",
+          otp: trimmed,
+          type: otpType,
           refid: otpType === "attendance" ? null : leaveIdForOtp,
         }),
       });
@@ -383,7 +385,7 @@ const generateOTP = async ({ employee_id = empid, type = "attendance", refid = n
       // start or resend OTP flow for leave
       setOtpType("leave");
       setOtpLoading(true);
-      await generateOTP({ employee_id: leaveEmpid, type: "Leave", refid: leaveId });
+      await generateOTP({ employee_id: leaveEmpid, type: "leave", refid: leaveId });
     } catch (err) {
       console.error("Leave apply error:", err);
       showToast("Failed to submit leave. Please try again.", "error");
@@ -506,6 +508,7 @@ const generateOTP = async ({ employee_id = empid, type = "attendance", refid = n
         locationLoading={locationLoading}
         loading={loading}
         otpLoading={otpLoading}
+        formDisabled={showOtpModal}
         onSubmit={markattandance}
       />
 

@@ -299,7 +299,9 @@ const sendEmail =require("../config/email");
 });
 
 Router.post("/generateOTP", async (req, res) => {
-  const {employee_id,type,refid} = req.body; 
+  const { employee_id, type, refid } = req.body;
+  // always work with lowercase type to avoid case mismatches
+  const otpType = typeof type === "string" ? type.toLowerCase() : "";
 
   if (!employee_id) {
     return res.status(400).json({ error: "Employee ID is required" });
@@ -321,8 +323,8 @@ Router.post("/generateOTP", async (req, res) => {
     const { data: existingOTP } = await supabase
       .from(OTP_Table)
       .select("created_at")
-      .eq("employee_id",employee.id)
-      .eq("otp_type", type)
+      .eq("employee_id", employee.id)
+      .eq("otp_type", otpType)
       .eq("reference_id", refid || null)
       .single();
 
@@ -351,12 +353,12 @@ Router.post("/generateOTP", async (req, res) => {
     const { error: insertError } = await supabase
       .from(OTP_Table)
       .insert({
-        employee_id: employee.id, 
+        employee_id: employee.id,
         otp: OTP,
         expires_at: expiresAt,
         attempts: 0,
-        otp_type:type,
-        reference_id:refid || null
+        otp_type: otpType,
+        reference_id: refid || null
       });
 
     if (insertError) {
@@ -364,7 +366,8 @@ Router.post("/generateOTP", async (req, res) => {
     }
 let emailSent = "";
 
-if (type == "Attendance") {
+// use normalized type for subject and body
+if (otpType === "attendance") {
   emailSent = await sendEmail(
     employee.email,
     "Your Attendance OTP",
@@ -399,17 +402,19 @@ if (!emailSent) {
 
 Router.post("/verify-otp", async (req, res) => {
   const { employee_id, otp, type, refid } = req.body;
+  const otpValue = otp && String(otp).trim();
+  const otpType = typeof type === "string" ? type.toLowerCase() : "";
 
-  if (!employee_id || !otp || !type) {
+  if (!employee_id || !otpValue || !type) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
     const { data: employee, error: empError } = await supabase
-  .from(EMPLOYEES_TABLE)
-  .select("id, employee_id, name, email")
-  .eq("employee_id", employee_id)
-  .single();
+      .from(EMPLOYEES_TABLE)
+      .select("id, employee_id, name, email")
+      .eq("employee_id", employee_id)
+      .single();
 
     if (empError || !employee) {
       return res.status(404).json({ error: "Employee not found" });
@@ -419,12 +424,21 @@ Router.post("/verify-otp", async (req, res) => {
       .from(OTP_Table)
       .select("*")
       .eq("employee_id", employee.id)
-      .eq("otp", otp)
-      .eq("otp_type", type)
+      .eq("otp", otpValue)
+      .eq("otp_type", otpType)
       .eq("reference_id", refid || null)
       .single();
 
     if (otpError || !validOTP) {
+      // log details for debugging
+      console.log("OTP verification failed", {
+        employee: employee.employee_id,
+        providedOtp: otpValue,
+        otpType,
+        refid,
+        otpError,
+        validOTP,
+      });
       return res.status(400).json({ error: "Invalid OTP" });
     }
 

@@ -21,7 +21,11 @@ export default function PINModal({
             <input
               type="text"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => {
+                // allow only digits and strip whitespace
+                const cleaned = e.target.value.replace(/\D/g, "").trim();
+                setOtp(cleaned);
+              }}
               onKeyPress={(e) => e.key === 'Enter' && onPINSubmit(e)}
               placeholder="Enter OTP"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9500] bg-cream-100"
