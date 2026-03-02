@@ -300,8 +300,15 @@ const sendEmail =require("../config/email");
 
 Router.post("/generateOTP", async (req, res) => {
   const { employee_id, type, refid } = req.body;
-  // always work with lowercase type to avoid case mismatches
-  const otpType = typeof type === "string" ? type.toLowerCase() : "";
+  // normalize the incoming type to a proper value used by our table
+  const normalizeType = (t) => {
+    if (typeof t !== "string") return "";
+    const lower = t.toLowerCase();
+    if (lower === "attendance") return "Attendance";
+    if (lower === "leave") return "Leave";
+    return t;
+  };
+  const otpType = normalizeType(type);
 
   if (!employee_id) {
     return res.status(400).json({ error: "Employee ID is required" });
@@ -324,7 +331,8 @@ Router.post("/generateOTP", async (req, res) => {
       .from(OTP_Table)
       .select("created_at")
       .eq("employee_id", employee.id)
-      .eq("otp_type", otpType)
+      // case‑insensitive check in case older rows used different casing
+      .ilike("otp_type", otpType)
       .eq("reference_id", refid || null)
       .single();
 
@@ -343,7 +351,7 @@ Router.post("/generateOTP", async (req, res) => {
         .from(OTP_Table)
         .delete()
         .eq("employee_id", employee.id)
-        .eq("otp_type", type)
+        .ilike("otp_type", otpType)
         .eq("reference_id", refid || null);
     }
 
@@ -367,7 +375,7 @@ Router.post("/generateOTP", async (req, res) => {
 let emailSent = "";
 
 // use normalized type for subject and body
-if (otpType === "attendance") {
+if (otpType === "Attendance") {
   emailSent = await sendEmail(
     employee.email,
     "Your Attendance OTP",
@@ -403,7 +411,14 @@ if (!emailSent) {
 Router.post("/verify-otp", async (req, res) => {
   const { employee_id, otp, type, refid } = req.body;
   const otpValue = otp && String(otp).trim();
-  const otpType = typeof type === "string" ? type.toLowerCase() : "";
+  const normalizeType = (t) => {
+    if (typeof t !== "string") return "";
+    const lower = t.toLowerCase();
+    if (lower === "attendance") return "Attendance";
+    if (lower === "leave") return "Leave";
+    return t;
+  };
+  const otpType = normalizeType(type);
 
   if (!employee_id || !otpValue || !type) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -425,7 +440,7 @@ Router.post("/verify-otp", async (req, res) => {
       .select("*")
       .eq("employee_id", employee.id)
       .eq("otp", otpValue)
-      .eq("otp_type", otpType)
+      .ilike("otp_type", otpType)
       .eq("reference_id", refid || null)
       .single();
 
@@ -446,7 +461,7 @@ Router.post("/verify-otp", async (req, res) => {
       return res.status(400).json({ error: "OTP expired" });
     }
 
-    if (type === "Leave") {
+    if (otpType === "Leave") {
       const {data:leave_data}=await supabase
         .from(Leave_Table)
         .update({ is_verified: true })
