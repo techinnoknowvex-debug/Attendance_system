@@ -5,6 +5,7 @@ import BackgroundAnimation from "../components/BackgroundAnimation";
 import AdminLoginModal from "../components/AdminLoginModal";
 import AttendanceForm from "../components/AttendanceForm";
 import PINModal from "../components/PINModal";
+import LeaveForm from "../components/LeaveForm";
 
 
 
@@ -35,6 +36,20 @@ export default function Home() {
   const [canResendOtp, setCanResendOtp] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
+
+  // ---- leave form states ----
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [leaveEmpid, setLeaveEmpid] = useState("");
+  const [leaveName, setLeaveName] = useState("");
+  const [leaveReason, setLeaveReason] = useState("");
+  const [leaveStart, setLeaveStart] = useState("");
+  const [leaveEnd, setLeaveEnd] = useState("");
+  const [leaveType, setLeaveType] = useState("Sick Leave");
+  const [leaveTL, setLeaveTL] = useState("");
+  const [leaveLoading, setLeaveLoading] = useState(false);
+  const [leaveIdForOtp, setLeaveIdForOtp] = useState(null);
+  const [otpType, setOtpType] = useState("attendance");
+
 
 
 
@@ -119,24 +134,25 @@ export default function Home() {
   }, [otpTimer, showOtpModal]);
 
 
-  const generateOTP = async () => {
+const generateOTP = async ({ employee_id = empid, type = "attendance", refid = null } = {}) => {
     try {
-     
-
       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: empid }),
+        body: JSON.stringify({ employee_id, type, refid }),
       });
 
       const data = await res.json();
-      
       if (res.ok) {
         showToast(data.message || "OTP sent to your email!", "success");
         setShowOtpModal(true);
         setOtp("");
         setOtpTimer(60);
         setCanResendOtp(false);
+        if (type === "Leave") {
+          // once OTP sent hide the form to avoid duplicate submissions
+          setShowLeaveForm(false);
+        }
       } else {
         showToast(data.error || data.message || "Failed to generate OTP", "error");
       }
@@ -150,7 +166,13 @@ export default function Home() {
 
   // Resend OTP
   const resendOTP = async () => {
-    await generateOTP();
+    if (otpType === "attendance") {
+      await generateOTP({ employee_id: empid, type: "attendance", refid: null });
+    } else if (otpType === "leave") {
+      await generateOTP({ employee_id: leaveEmpid, type: "Leave", refid: leaveIdForOtp });
+    } else {
+      await generateOTP();
+    }
   };
 
 
@@ -199,11 +221,16 @@ export default function Home() {
 
       setLoading(true);
 
-     
+      // first verify OTP for whichever flow we are in
       const verifyRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: empid, otp }),
+        body: JSON.stringify({
+          employee_id: otpType === "attendance" ? empid : leaveEmpid,
+          otp,
+          type: otpType === "attendance" ? "attendance" : "Leave",
+          refid: otpType === "attendance" ? null : leaveIdForOtp,
+        }),
       });
       const verifyData = await verifyRes.json();
 
@@ -214,32 +241,48 @@ export default function Home() {
         return;
       }
 
-      
-      const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId: empid,
-          status,
-          authType: status === "Work From Home" ? "" : authType,
-          latitude: status === "Work From Home" ? null : location.lat,
-          longitude: status === "Work From Home" ? null : location.lon,
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      if (otpType === "attendance") {
+        const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId: empid,
+            status,
+            authType: status === "Work From Home" ? "" : authType,
+            latitude: status === "Work From Home" ? null : location.lat,
+            longitude: status === "Work From Home" ? null : location.lon,
+            timestamp: new Date().toISOString(),
+          }),
+        });
 
-      const markData = await markRes.json();
-      if (markRes.ok) {
-        showToast(markData.message || "Attendance marked successfully!", "success");
-        setEmpid("");
-        setDepartment("");
-        setStatus("");
-        setAuthType("");
+        const markData = await markRes.json();
+        if (markRes.ok) {
+          showToast(markData.message || "Attendance marked successfully!", "success");
+          setEmpid("");
+          setDepartment("");
+          setStatus("");
+          setAuthType("");
+          setOtp("");
+          setShowOtpModal(false);
+        } else {
+          showToast(markData.message || "Something went wrong. Please try again.", "error");
+          setOtp("");
+        }
+      } else if (otpType === "leave") {
+        // after leave OTP is verified the backend already marked the leave as verified
+        showToast("Leave verified and submitted!", "success");
+        // reset leave form
+        setLeaveEmpid("");
+        setLeaveName("");
+        setLeaveReason("");
+        setLeaveStart("");
+        setLeaveEnd("");
+        setLeaveType("Sick Leave");
+        setLeaveTL("");
+        setLeaveIdForOtp(null);
+        setShowLeaveForm(false);
         setOtp("");
         setShowOtpModal(false);
-      } else {
-        showToast(markData.message || "Something went wrong. Please try again.", "error");
-        setOtp("");
       }
     } catch (error) {
       console.error("Verification error:", error);
@@ -276,13 +319,76 @@ export default function Home() {
       return;
     }
 
- 
-    
+    // set otp type to attendance before generating
+    setOtpType("attendance");
+
     if (status === "Present" && authType === "logout") {
       await markAttendanceWithoutOTP();
     } else {
-       setOtpLoading(true);
-      await generateOTP();
+      setOtpLoading(true);
+      await generateOTP({ employee_id: empid, type: "attendance", refid: null });
+    }
+  };
+
+  // leave submission
+  const handleLeaveSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!leaveEmpid.trim()) {
+      showToast("Please select employee for leave", "error");
+      return;
+    }
+    if (!leaveReason.trim()) {
+      showToast("Please enter reason", "error");
+      return;
+    }
+    if (!leaveStart || !leaveEnd) {
+      showToast("Please select both start and end date", "error");
+      return;
+    }
+    if (!leaveTL) {
+      showToast("Please select a team leader", "error");
+      return;
+    }
+
+    setLeaveLoading(true);
+    try {
+      let leaveId = leaveIdForOtp;
+
+      if (!leaveId) {
+        // first time submission, create record
+        const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/applyLeave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            empid: leaveEmpid,
+            tlID: leaveTL,
+            reason: leaveReason,
+            leave_type: leaveType,
+            st_date: leaveStart,
+            end_date: leaveEnd,
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.leave_id) {
+          leaveId = data.leave_id;
+          setLeaveIdForOtp(leaveId);
+        } else {
+          showToast(data.message || data.error || "Failed to apply leave", "error");
+          return;
+        }
+      }
+
+      // start or resend OTP flow for leave
+      setOtpType("leave");
+      setOtpLoading(true);
+      await generateOTP({ employee_id: leaveEmpid, type: "Leave", refid: leaveId });
+    } catch (err) {
+      console.error("Leave apply error:", err);
+      showToast("Failed to submit leave. Please try again.", "error");
+    } finally {
+      setLeaveLoading(false);
     }
   };
 
@@ -349,6 +455,39 @@ export default function Home() {
         setPassword={setPassword}
         adminLoading={adminLoading}
         onAdminSubmit={Admincheck}
+      />
+
+      {/* apply leave button (top left) */}
+      <button
+        onClick={() => setShowLeaveForm(true)}
+        className="absolute top-5 left-5 z-20 bg-[#FF9500] text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:bg-[#FF8500] transition-all duration-300"
+      >
+        Apply Leave
+      </button>
+
+      {/* Leave Form Modal */}
+      <LeaveForm
+        showLeaveForm={showLeaveForm}
+        setShowLeaveForm={setShowLeaveForm}
+        leaveEmpid={leaveEmpid}
+        setLeaveEmpid={setLeaveEmpid}
+        leaveName={leaveName}
+        setLeaveName={setLeaveName}
+        leaveReason={leaveReason}
+        setLeaveReason={setLeaveReason}
+        leaveStart={leaveStart}
+        setLeaveStart={setLeaveStart}
+        leaveEnd={leaveEnd}
+        setLeaveEnd={setLeaveEnd}
+        leaveType={leaveType}
+        setLeaveType={setLeaveType}
+        leaveTL={leaveTL}
+        setLeaveTL={setLeaveTL}
+        leaveLoading={leaveLoading}
+        employeesLoading={employeesLoading}
+        employees={employees}
+        leaveIdForOtp={leaveIdForOtp}
+        onLeaveSubmit={handleLeaveSubmit}
       />
 
       {/* Attendance Form */}

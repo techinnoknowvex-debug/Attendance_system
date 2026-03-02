@@ -13,6 +13,7 @@ app.use(express.json());
 
 const admin=require("./routes/admin");
 const markattandance=require("./routes/markattandance");
+const leaveapplication=require("./routes/leaveapplication")
 let empdata;
 try {
   empdata = require("./routes/empdata");
@@ -42,6 +43,7 @@ app.use("/emp",admin)
 app.use("/emp",markattandance)
 app.use("/emp",empdata)
 app.use("/emp",lop)
+app.use("/emp",leaveapplication)
 
 
 app.listen(5000,()=>{

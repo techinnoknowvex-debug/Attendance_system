@@ -3,7 +3,7 @@ const Router=express.Router();
 const XLSX=require('xlsx')
 const supabase = require("../config/supabase");
 const { EMPLOYEES_TABLE, ATTENDANCE_TABLE, LOP_TABLE } = require("../models/supabaseModels");
-const verifyToken=require("../middleware/admincheck")
+const {verifyToken}=require("../middleware/admincheck")
 
   Router.post("/empdata", verifyToken,async (req, res) => {
     const { year, month } = req.body;

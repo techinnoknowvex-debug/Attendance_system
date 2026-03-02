@@ -1,7 +1,7 @@
 const express=require('express');
 const Router=express.Router();
 const supabase = require("../config/supabase");
-const { EMPLOYEES_TABLE, ATTENDANCE_TABLE, OTP_Table} = require("../models/supabaseModels");
+const { EMPLOYEES_TABLE, ATTENDANCE_TABLE, OTP_Table, Leave_Table} = require("../models/supabaseModels");
 const sendEmail =require("../config/email");
 
  Router.post("/markattandance", async (req, res) => {
@@ -299,7 +299,7 @@ const sendEmail =require("../config/email");
 });
 
 Router.post("/generateOTP", async (req, res) => {
-  const { employee_id } = req.body; 
+  const {employee_id,type,refid} = req.body; 
 
   if (!employee_id) {
     return res.status(400).json({ error: "Employee ID is required" });
@@ -312,6 +312,7 @@ Router.post("/generateOTP", async (req, res) => {
       .select("id,name,email")
       .eq("employee_id", employee_id)
       .single();
+      
 
     if (empError || !employee) {
       return res.status(404).json({ error: "Employee not found" });
@@ -321,6 +322,8 @@ Router.post("/generateOTP", async (req, res) => {
       .from(OTP_Table)
       .select("created_at")
       .eq("employee_id",employee.id)
+      .eq("otp_type", type)
+      .eq("reference_id", refid || null)
       .single();
 
     if (existingOTP) {
@@ -337,7 +340,9 @@ Router.post("/generateOTP", async (req, res) => {
       await supabase
         .from(OTP_Table)
         .delete()
-        .eq("employee_id", employee.id);
+        .eq("employee_id", employee.id)
+        .eq("otp_type", type)
+        .eq("reference_id", refid || null);
     }
 
     const OTP = Math.floor(1000 + Math.random() * 9000).toString();
@@ -349,20 +354,39 @@ Router.post("/generateOTP", async (req, res) => {
         employee_id: employee.id, 
         otp: OTP,
         expires_at: expiresAt,
-        attempts: 0
+        attempts: 0,
+        otp_type:type,
+        reference_id:refid || null
       });
 
     if (insertError) {
       return res.status(500).json({ error: insertError.message });
     }
+let emailSent = "";
 
-
-const emailSent = await sendEmail(employee.email, OTP);
+if (type == "Attendance") {
+  emailSent = await sendEmail(
+    employee.email,
+    "Your Attendance OTP",
+    `<h2>Your OTP Code</h2>
+     <p>Your attendance OTP is:</p>
+     <h1>${OTP}</h1>
+     <p>This OTP is valid for 3 minutes.</p>`
+  );
+} else {
+  emailSent = await sendEmail(
+    employee.email,
+    "Your Leave Request OTP",
+    `<h2>Your OTP Code</h2>
+     <p>Your OTP is:</p>
+     <h1>${OTP}</h1>
+     <p>This OTP is valid for 3 minutes.</p>`
+  );
+}
 
 if (!emailSent) {
   return res.status(500).json({ error: "Failed to send email" });
 }
-
     return res.status(200).json({
       message: "OTP sent successfully",
     });
@@ -373,43 +397,88 @@ if (!emailSent) {
 });
 
 
-Router.post("/verify-otp",async(req,res)=>{
-  const {employee_id,otp}=req.body
-  try{
-    const {data:employee}=await supabase
-    .from(EMPLOYEES_TABLE)
-    .select('id')
-    .eq('employee_id',employee_id)
-    .single();
+Router.post("/verify-otp", async (req, res) => {
+  const { employee_id, otp, type, refid } = req.body;
 
-    const {data:validotp,error:otpError}=await supabase
-    .from(OTP_Table)
-    .select('*')
-    .eq('employee_id',employee.id)
-    .eq("otp", otp)
-    .single();
+  if (!employee_id || !otp || !type) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
-    if (otpError || !validotp) {
+  try {
+    const { data: employee, error: empError } = await supabase
+  .from(EMPLOYEES_TABLE)
+  .select("id, employee_id, name, email")
+  .eq("employee_id", employee_id)
+  .single();
+
+    if (empError || !employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    const { data: validOTP, error: otpError } = await supabase
+      .from(OTP_Table)
+      .select("*")
+      .eq("employee_id", employee.id)
+      .eq("otp", otp)
+      .eq("otp_type", type)
+      .eq("reference_id", refid || null)
+      .single();
+
+    if (otpError || !validOTP) {
       return res.status(400).json({ error: "Invalid OTP" });
     }
-    const now = new Date();
-    const expiryTime = new Date(validotp.expires_at);
 
-    if (now > expiryTime) {
+    if (new Date() > new Date(validOTP.expires_at)) {
       return res.status(400).json({ error: "OTP expired" });
     }
 
+    if (type === "Leave") {
+      const {data:leave_data}=await supabase
+        .from(Leave_Table)
+        .update({ is_verified: true })
+        .eq("id", refid)
+        .select()
+        .single();
 
+        const {data:TL}=await supabase
+        .from(EMPLOYEES_TABLE)
+        .select("email,name")
+        .eq("id",leave_data.team_leader_id) 
+        .single();
+        
+        await sendEmail(TL.email,
+  "Leave Request",
+  `<h3>Leave Application</h3>
+   <p><strong>Employee ID:</strong> ${employee.employee_id}</p>
+  <p><strong>Employee Name:</strong> ${employee.name}</p>
+  <p><strong>Reason:</strong> ${leave_data.reason}</p>
+  <p><strong>From:</strong> ${leave_data.start_date}</p>
+  <p><strong>To:</strong> ${leave_data.end_date}</p>
+  <p><strong>Total Days:</strong> ${leave_data.total_days}</p>
+  `
+);
+     await sendEmail("hr@innoknowvex.in",
+  "Leave Request",
+  `<h3>Leave Application</h3>
+   <p><strong>Employee ID:</strong> ${employee.employee_id}</p>
+  <p><strong>Employee Name:</strong> ${employee.name}</p>
+  <p><strong>Reason:</strong> ${leave_data.reason}</p>
+  <p><strong>From:</strong> ${leave_data.start_date}</p>
+  <p><strong>To:</strong> ${leave_data.end_date}</p>
+  <p><strong>Total Days:</strong> ${leave_data.total_days}</p>
+  `
+);
+    }
     await supabase
       .from(OTP_Table)
       .delete()
-      .eq("id", validotp.id);
+      .eq("id", validOTP.id);
 
     return res.status(200).json({ message: "OTP Verified Successfully" });
 
-  }catch (error) {
+  } catch (error) {
     return res.status(500).json({ error: error.message });
   }
-})
+});
 
 module.exports = Router;

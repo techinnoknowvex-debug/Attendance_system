@@ -3,6 +3,8 @@ import Home from "./pages/Home";
 import Admin from "./pages/Admin";
 import AllEmployees from "./pages/AllEmployees";
 import DailyAttendance from "./pages/DailyAttendance";
+import TL from "./pages/TL";
+import HR from "./pages/HR";
 
 const AdminRoute = ({ children }) => {
   const token = sessionStorage.getItem("webtoken");
@@ -44,6 +46,8 @@ export default function App() {
             </AdminRoute>
           }
         />
+        <Route path="/TL" element={<TL />} />
+        <Route path="/HR" element={<HR />} />
       </Routes>
     </Router>
   );

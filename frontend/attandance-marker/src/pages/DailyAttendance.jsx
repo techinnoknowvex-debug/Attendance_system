@@ -73,7 +73,7 @@ export default function DailyAttendance() {
     selectedDepartment === "All"
       ? dailyData.data
       : dailyData.data.filter(
-          (emp) => emp.department === selectedDepartment
+          (emp) => emp.department===selectedDepartment
         );
 
   // Calculate statistics

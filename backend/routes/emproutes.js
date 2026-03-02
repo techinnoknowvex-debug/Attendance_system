@@ -4,14 +4,14 @@ const Router=express.Router();
 const supabase = require("../config/supabase");
 const { EMPLOYEES_TABLE } = require("../models/supabaseModels");
 
-const verifyToken=require('../middleware/admincheck');
+const {verifyToken}=require('../middleware/admincheck');
 
 
 Router.get("/employees-for-attendance", async (req, res) => {
   try {
     const { data: Empdata, error } = await supabase
       .from(EMPLOYEES_TABLE)
-      .select('employee_id, name, department, employee_type');
+      .select('id, employee_id, name, department, employee_type,role');
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -185,10 +185,6 @@ Router.get("/employees-for-attendance", async (req, res) => {
       return res.status(500).json({message:err.message || err});
      }
  })
-
-
-
-
 
 module.exports=Router;
 

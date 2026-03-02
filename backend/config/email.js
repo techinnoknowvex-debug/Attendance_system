@@ -1,27 +1,17 @@
 const axios = require("axios");
 
-
-const sendEmail = async (toEmail, otp) => {
+const sendEmail = async (toEmail, subject, htmlContent) => {
   try {
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: {
-          name: "AttendanceOTP",
-          email: "narendrachakka33@gmail.com", 
+          name: "HR System",
+          email: "narendrachakka33@gmail.com",
         },
-        to: [
-          {
-            email: toEmail,
-          },
-        ],
-        subject: "Your Attendance OTP",
-        htmlContent: `
-          <h2>Your OTP Code</h2>
-          <p>Your attendance OTP is:</p>
-          <h1>${otp}</h1>
-          <p>This OTP is valid for 3 minutes.</p>
-        `,
+        to: [{ email: toEmail }],
+        subject: subject,
+        htmlContent: htmlContent,
       },
       {
         headers: {
@@ -38,4 +28,4 @@ const sendEmail = async (toEmail, otp) => {
   }
 };
 
-module.exports=sendEmail;
+module.exports = sendEmail;
