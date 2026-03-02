@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 import BackgroundAnimation from "../components/BackgroundAnimation";
@@ -49,6 +49,12 @@ export default function Home() {
   const [leaveLoading, setLeaveLoading] = useState(false);
   const [leaveIdForOtp, setLeaveIdForOtp] = useState(null);
   const [otpType, setOtpType] = useState(""); // will be set to "Attendance" or "Leave" when needed
+  const otpTypeRef = useRef("");
+
+  const updateOtpType = (type) => {
+    setOtpType(type);
+    otpTypeRef.current = type;
+  };
 
 
 
@@ -135,6 +141,15 @@ export default function Home() {
 
 
 const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = null } = {}) => {
+    // normalize the type before sending so network requests are consistent
+    const normalizeType = (t) => {
+      if (typeof t !== "string") return "";
+      const lower = t.toLowerCase();
+      if (lower === "attendance") return "Attendance";
+      if (lower === "leave") return "Leave";
+      return t;
+    };
+    type = normalizeType(type);
     try {
       const res = await fetch("https://attendance-system-oe9j.onrender.com/emp/generateOTP", {
         method: "POST",
@@ -228,10 +243,10 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employee_id: otpType === "Attendance" ? empid : leaveEmpid,
+          employee_id: otpTypeRef.current === "Attendance" ? empid : leaveEmpid,
           otp: trimmed,
-          type: otpType,
-          refid: otpType === "Attendance" ? null : leaveIdForOtp,
+          type: otpTypeRef.current,
+          refid: otpTypeRef.current === "Attendance" ? null : leaveIdForOtp,
         }),
       });
       const verifyData = await verifyRes.json();
@@ -243,7 +258,7 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
         return;
       }
 
-      if (otpType === "Attendance") {
+      if (otpTypeRef.current === "Attendance") {
         const markRes = await fetch("https://attendance-system-oe9j.onrender.com/emp/markattandance", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -322,7 +337,7 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
     }
 
     // set otp type to Attendance before generating
-    setOtpType("Attendance");
+    updateOtpType("Attendance");
 
     if (status === "Present" && authType === "logout") {
       await markAttendanceWithoutOTP();
@@ -383,7 +398,7 @@ const generateOTP = async ({ employee_id = empid, type = "Attendance", refid = n
       }
 
       // start or resend OTP flow for leave
-      setOtpType("Leave");
+      updateOtpType("Leave");
       setOtpLoading(true);
       await generateOTP({ employee_id: leaveEmpid, type: "leave", refid: leaveId });
     } catch (err) {
